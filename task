@@ -1,0 +1,7 @@
+create user areen identified by 'Bigdata@123';
+CREATE TABLE bank_card 
+( 
+        b_number NCHAR(30) PRIMARY KEY, 
+        b_type NCHAR(20), 
+        b_c_id INT NOT NULL 
+);
