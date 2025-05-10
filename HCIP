@@ -1,1 +1,125 @@
-HCIP
+---> create user db schema
+create user if not exists user_test password 'Test@123';
+create database if not exists db_test;
+create schema if not exists sche_test;
+CREATE TABLE if not exists tb_test(a int);
+
+---> View all tables in the public schema in the PG_TABLES system catalog
+SELECT distinct(tablename) FROM pg_tables WHERE SCHEMANAME = 'public';
+
+---> Set track_activities to on. The database system collects the running information
+SET track_activities = on;
+
+---> View the running query statements.
+SELECT datname, usename, state,pid FROM pg_stat_activity;
+
+---> View non-idle query statements
+SELECT datname, usename, state FROM pg_stat_activity WHERE state != 'idle';
+
+---> Terminate the session using its thread ID
+SELECT PG_TERMINATE_BACKEND(281451069413744);
+
+---> Check the maximum number of database connections.
+show max_connections;
+-> Change the maximum number of connections to 1000 as user user_test.
+[omm]$ gsql -d postgres -p 26000 -U user_test -W 'Test@123' -r
+ alter system set max_connections= 1000;  //permision error
+GRANT ALL PRIVILEGES TO user_test;
+\q
+[omm]$ gsql -d postgres -p 26000 -U user_test -W 'Test@123' -r
+enja alter karawa
+gs_om -t restart
+
+---> Query tables and objects that columns or tables,indexes and primary keys.
+select * from pg_class;
+-> Query database information.
+select * from pg_database;
+-> Query table information.
+select * from pg_tables where tablename = 'tb_test';
+-> Query table column information.
+select * from information_schema.columns where table_name = 'tb_test';
+-> Query check, primary key, unique, foreign key, and exclusion constraints.
+select * from pg_constraint;
+-> Query table inheritance relationships.
+select * from pg_inherits;
+-> Query the namespace, that is, schema.
+select * from pg_namespace;
+-> Query database role information.
+select * from pg_roles;
+-> Query user access permission.
+select * from pg_shadow;
+-> Query user information.
+select * from pg_user;
+-> Query View Information.
+select * from pg_views;
+
+---> Check whether resource load management is enabled
+show use_workload_manager;
+-> Check which users have the system administrator permission.
+SELECT rolname FROM pg_roles WHERE rolsystemadmin = 't';
+-> Check which users have the login permission.
+SELECT rolname FROM pg_roles WHERE rolcanlogin = 't';
+->  Enable resource load management.
+[omm@]gs_guc set -N all -I all -c "use_workload_manager=on"
+[omm@]$ gs_om -t restart
+-> Check that resource load management is enabled
+openGauss=# show use_workload_manager;
+-> View load management information about jobs being executed by the current user
+select * from dbe_perf.STATEMENT_COMPLEX_RUNTIME;
+-> View operators of the jobs that are being executed by the current user
+select * from dbe_perf.OPERATOR_RUNTIME;
+-> View historical load records
+resource_track_duration = 1min;
+resource_track_cost = 0;
+resource_track_level = 'query';
+-> View archived load management records.
+select * from DBE_PERF.STATEMENT_COMPLEX_HISTORY;
+-> View archived load management records.
+select * from DBE_PERF.STATEMENT_COMPLEX_HISTORY_TABLE;
+
+---> Revoke user user_test's sysadmin and LOGIN permission, and grant it with the
+---> usage permission on the sche_test schema and all permissions on the tb_test table.
+REVOKE ALL PRIVILEGES FROM user_test;
+ALTER USER user_test NOLOGIN;
+GRANT USAGE ON SCHEMA sche_test TO user_test;
+GRANT ALL PRIVILEGES ON tb_test TO user_test;
+-> Grant the query permission on the c_customer_sk...,
+-> and the update permission onc_last_name column in tb_test table to user user_test.
+GRANT select (c_customer_sk,c_customer_id,c_first_name),update (c_last_name) ON
+tb_test TO user_test;
+-> To allow user user_test to grant these permissions to other users,
+GRANT select (c_customer_sk,c_customer_id,c_first_name),update (c_last_name) ON
+tb_test TO user_test WITH GRANT OPTION;
+-> Connect to the db_test database as user user_test and grant permissions to the user.
+gsql -d db_test -p 26000 -U user_test -W 'Test@123';  //if have error
+openGauss=# GRANT create,connect on database db_test TO user_test WITH GRANT OPTION;
+-> Create the test_manager role.
+CREATE ROLE test_manager PASSWORD 'openGauss123';
+GRANT connect on database db_test TO test_manager;
+GRANT USAGE,CREATE ON SCHEMA sche_test TO test_manager;
+-> Create the tpcds_tbspc tablespace and grant all permissions on the tablespace to user user_test.
+CREATE TABLESPACE tpcds_tbspc RELATIVE LOCATION 'tablespace/tablespace_1';
+GRANT ALL ON TABLESPACE tpcds_tbspc TO user_test;
+-> Grant the SELECT ANY TABLE permission on the schema_2 schema to user user_test.
+crate schema shema2,akay create table akai la schimaka
+create table schema_2.tb_test2(a int,b int);
+
+
+-> 
+-> 
+-> 
+-> 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
