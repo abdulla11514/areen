@@ -104,12 +104,56 @@ GRANT ALL ON TABLESPACE tpcds_tbspc TO user_test;
 crate schema shema2,akay create table akai la schimaka
 create table schema_2.tb_test2(a int,b int);
 
+---> Scheduled Jobs // Create a B-compatible database (that is, sql_compatibility = 'B') my_database01.
+CREATE DATABASE my_database01 DBCOMPATIBILITY 'B';
+my_database01=# show sql_compatibility ;
+-> Create scheduled job event01 that is executed once.
+CREATE EVENT IF NOT EXISTS event01 ON SCHEDULE AT current_timestamp + interval
+10 second + interval 3 minute DISABLE DO insert into event_table01 values(0,current_timestamp(3));
+->Query job event1
+my_database01=# show events;
+-> Modify the job to make it available
+alter event event01 enable;
 
--> 
--> 
--> 
--> 
+---> Cyclic Scheduled Jobs Create a scheduled job that is executed every minute.
+CREATE EVENT IF NOT EXISTS event02 ON SCHEDULE EVERY 1 minute DO insert into event_table01 values(1,current_timestamp(3));
+-> Check the job execution status.
+select * from event_table01;
+-> Change the job name to event03
+alter event event02 rename to event03;
+-> View the job in the PG_JOB system catalog.
+select * from PG_JOB where job_name = 'event03';
+-> delete event
+drop event event03;
 
+
+--->  PKG_SERVICE // Create sequence seq01.
+create sequence seq01 start with 1 increment 1 nomaxvalue;
+->Create stored procedure job_test01.
+create or replace procedure job_test01
+as
+begin
+insert into event_table02 values(seq01.nextval);
+end;
+/
+-> Query the stored procedure.Check the OID of the stored procedure in the pg_proc 
+select oid from pg_proc where proname = 'job_test01';
+-> Create a scheduled job.
+select pkg_service.job_submit(1,'select job_test01()',sysdate,'sysdate+1/(24*60)');
+->Check the pg_job system
+select * from pg_job;
+-> Check whether the scheduled job is successful.
+select * from event_table02;
+-> Invalidate the scheduled job
+select pkg_service.job_finish(1,true);
+-> Check the job status
+select * from pg_job where job_id = '1';
+-> Schedule the scheduled job to run once a day
+select pkg_service.job_update(1,sysdate,'sysdate+1',null);
+-> Delete the scheduled job.
+select pkg_service.job_cancel(1);
+
+//ch2//
 
 
 
