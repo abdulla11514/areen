@@ -194,7 +194,125 @@ GRANT joe TO manager WITH ADMIN OPTION;
 
 ---> Revoking Permissions
 --> Revoke permissions and delete users. 
- REVOKE manager FROM joe; 
+REVOKE manager FROM joe; 
+REVOKE senior_manager FROM manager;
+DROP USER manager; 
+REVOKE ALL PRIVILEGES ON tpcds.reason FROM joe;
+REVOKE ALL PRIVILEGES ON SCHEMA tpcds FROM joe; 
+REVOKE USAGE,CREATE ON SCHEMA tpcds FROM tpcds_manager;
+DROP ROLE tpcds_manager; 
+DROP ROLE senior_manager;
+DROP USER joe CASCADE; 
+
+---> Data Import and Export
+---> Creating a Backup Directory
+--> Create a backup directory as user omm.
+mkdir /gaussdb/backup 
+cd /gaussdb/backup 
+
+--> Creating a Table and Inserting Data
+->  CREATE TABLE customer_t1 
+postgres-# ( 
+postgres(#     c_customer_sk             integer, 
+postgres(#     c_customer_id             char(5), 
+postgres(#     c_first_name              char(6), 
+postgres(#     c_last_name               char(8) 
+postgres(# ); 
+
+NSERT INTO customer_t1 (c_customer_sk, c_customer_id, c_first_name) VALUES 
+postgres-# (3769, 'hello', DEFAULT) , 
+postgres-#     (6885, 'maps', 'Joes'), 
+postgres-#     (4321, 'tpcds', 'Lily'), 
+postgres-# (9527, 'world', 'James'); 
+
+--> View data in the customer_t1 table
+select * from customer_t1; 
+
+--> Display information about the current table
+\d 
+
+---> Exporting Data Using the copy Command
+-> Switch to the default user omm. 
+\c - omm 
+-> Run the copy command to export data.
+copy customer_t1 to '/gaussdb/backup/copy_cost.txt' delimiter '^';
+\q 
+-> View the exported file.  ama la omm anawse
+cd /gaussdb/backup/ 
+ll
+-> Exporting Data Using the gs_dump Command 
+gs_dump -U omm -W Bigdata@123 -f /gaussdb/backup/gsdump_post.sql -p 26000 postgres -F p 
+
+--> Use gs_dump to export the postgres database data in .tar format.
+gs_dump -U omm -W Bigdata@123 -f /gaussdb/backup/gsdump_post.tar -p 26000 postgres -F t 
+ll
+
+--> Use gs_dump to export tables-dependent views.
+-> Connect to the database, create the vw_customer_t1 view that depends on the customer_t1 table, and exit.
+gsql -d postgres -p 26000 –r 
+create view vw_customer_t1 as select * from customer_t1 limit 2; 
+\q
+-> Export the vw_customer_t1 view that depends on the customer_t1 table. 
+gs_dump -s -p 26000 postgres -t PUBLIC.customer_t1 --include-depend-objs --exclude self -f /gaussdb/backup/view_cust.sql -F p
+
+--> Exporting Data Using the gs_dumpall Command
+-> Use gs_dumpall to export all openGauss databases at a time. 
+gs_dumpall -f  /gaussdb/backup/gsdumpall.sql -p 26000
+
+--> Importing Data Using the gsql Command
+-> Delete the exported tables.
+gsql -p 26000 postgres -r 
+drop table joe.mytable;
+drop table public.customer_t1 cascade; 
+\q 
+
+-> Use gsql to restore the exported table. (Ignore "ERROR:  schema "joe" already exists".) 
+gsql -p 26000 postgres -r -f /gaussdb/backup/gsdump_post.sql 
+-> Check the restored table.
+gsql -p 26000 postgres -r 
+select * from joe.mytable;
+select * from public.customer_t1;
+\q 
+
+--> Importing Data Using the copy Command 
+-> Delete the tables that have been exported by running the copy command
+gsql -p 26000 postgres -r 
+truncate table public.customer_t1; 
+-> Run the copy command to import data. 
+copy customer_t1 from '/gaussdb/backup/copy_cost.txt' delimiter '^';
+-> View the imported table data.
+select * from customer_t1; 
+
+--> Importing Data Using the gs_restore Command
+-> Delete the tables and views exported using gs_dump. 
+gsql -p 26000 postgres -r 
+drop table joe.mytable; 
+drop table public.customer_t1;
+-> Use gs_restore to import data from the gsdump_post.tar file to the tpcc database. 
+create database tpcc; 
+\q
+-> Import data from the gsdump_post.tar file to the tpcc database. 
+gs_restore /gaussdb/backup/gsdump_post.tar -p 26000 -d tpcc 
+-> Log in to the tpcc database and view the restored data.
+gsql -p 26000 tpcc -r
+select * from public.customer_t1;
+select * from joe.mytable; 
+
+--> Clearing the Lab Environment 
+-> Delete the created database user. 
+gsql -p 26000 postgres -r
+\l
+ drop database tpcc; 
+\du
+drop user joe;
+\q
+
+
+
+
+
+
+
 
 
 
