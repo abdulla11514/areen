@@ -1,1 +1,17 @@
-AREEN ABDULLA
+---> create tb space 
+create table test (id int) tablespace test_tbs; 
+---> hjvhkjvhz
+
+Popen count is 1, Popen success count is 1, Popen failure count is 0. 
+Begin to perform gs_guc for datanodes. 
+Command count is 1, Command success count is 1, Command failure count is 0. 
+ 
+Total instances: 1. Failed instances: 0. 
+ALL: Success to perform gs_guc! 
+[omm@opengauss ~]$ gs_om -t restart 
+[omm@opengauss ~]$ gsql -d postgres -p 26000 -r 
+gsql ((openGauss 2.0.0 build 78689da9) compiled at 2021-03-31 21:03:52 commi 
+Non-SSL connection (SSL connection is recommended when requiring high-securi 
+Type "help" for help. 
+ 
+postgres=# create foreign table abc_test(id int); 
