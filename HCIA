@@ -1,16 +1,208 @@
----> create tb space 
-create table test (id int) tablespace test_tbs; 
----> hjvhkjvhz
+--> lec-2  Database and Object Management
 
- CREATE USER joe PASSWORD 'Bigdata@123'; 
- CREATE USER joe PASSWORD 'Bigdata@123'; 
- CREATE USER joe PASSWORD 'Bigdata@123'; 
- CREATE USER joe PASSWORD 'Bigdata@123'; 
- CREATE USER joe PASSWORD 'Bigdata@123'; 
- CREATE USER joe PASSWORD 'Bigdata@123'; 
- CREATE USER joe PASSWORD 'Bigdata@123'; 
- CREATE USER joe PASSWORD 'Bigdata@123'; 
- CREATE USER joe PASSWORD 'Bigdata@123'; 
- CREATE USER joe PASSWORD 'Bigdata@123'; 
- 
-create foreign table abc_test(id int); 
+--> Create a tablespace
+create tablespace test_tbs LOCATION '/opt/opengauss/tablespace/test_tbs1';
+
+--> Create a user
+create user jack IDENTIFIED BY 'xxxxxxxx'; 
+
+--> grant the user the permissions to access the test_tbs tablespace. 
+GRANT CREATE ON TABLESPACE test_tbs TO jack; 
+
+--> Create a table in the test_tbs tablespace
+create table test (id int) tablespace test_tbs; 
+
+--> Check the pg_tablespace system catalog.  
+SELECT spcname FROM pg_tablespace; 
+
+--> View all the tablespaces defined by the system and users. 
+\db 
+
+--> Query the tablespace usage.
+-> Query the current usage of the tablespace. The result indicates the size of the tablespace, in bytes.
+SELECT PG_TABLESPACE_SIZE('test_tbs'); 
+
+--> Modify the tablespace.
+->Run the following command to rename the tablespace:
+ALTER TABLESPACE test_tbs RENAME TO test_tbs1;
+
+--> Delete a tablespace.  # abe table bsretawa amja tablespace asretawa
+drop table test; 
+drop tablespace test_tbs1; 
+
+---> Creating, Viewing, Modifying, and Deleting a Database:
+--> Create the testdb database in the db_tbs tablespace. 
+CREATE DATABASE testdb with  TABLESPACE = db_tbs;
+
+--> View a database. 
+1) SELECT datname FROM pg_database;
+2)  \l 
+
+---> Modify a database.
+--> Modify the default search path of the database. 
+ALTER DATABASE testdb SET search_path TO pa_catalog,public;
+
+--> Change the database tablespace. 
+ALTER DATABASE testdb SET tablespace db_tbs1;
+
+--> Rename the database. 
+ALTER DATABASE testdb RENAME TO testdb1; 
+
+--> Delete a database. 
+DROP DATABASE testdb1;
+
+---> Creating, Viewing, Modifying, and Deleting Row-store Tables, Column-store Tables, and MOTs 
+--> Create a row-store table. By default, the table is a row-store table, that is, WITH (ORIENTATION = ROW) can be omitted.
+CREATE TABLE PART 
+( .... ) 
+WITH (ORIENTATION = ROW); 
+
+--> Create a column-store table.
+CREATE TABLE PART1 
+( ..... ) 
+WITH (ORIENTATION = COLUMN);
+
+--> View the table information. 
+\d
+
+---> Modify table attributes. 
+--> Adds a column. 
+ALTER TABLE part ADD COLUMN p_col1 bigint;
+
+--> Add the default value in the column. 
+ALTER TABLE part ALTER COLUMN p_col1 SET DEFAULT 1;
+
+--> Delete the default value in the column. 
+ALTER TABLE part ALTER COLUMN p_col1 drop DEFAULT ;
+
+--> Change the data type of a column. 
+ALTER TABLE part MODIFY p_col1 INT;
+
+--> Rename a column. 
+ ALTER TABLE part RENAME p_col1 to p_col; 
+
+--> Deletes a column. 
+ALTER TABLE part DROP COLUMN p_col; 
+
+--> Create an MOT. 
+ create FOREIGN table test(x int) ;  # agar ama erorr ya ama awam code anwsen la omm'akaya
+-> gs_guc set -N all -I all -c "enable_incremental_chec=off"
+
+--> Create an index for the MOT. 
+create index  text_index1 on test(x) ;
+
+--> Delete a table. 
+DROP TABLE PART; 
+
+---> User, Role, and Schema Management 
+--> Check the user list. 
+ SELECT * FROM pg_user; 
+
+--> For a user having the Create Database permission, add the CREATEDB keyword: 
+CREATE USER dim CREATEDB PASSWORD 'Bigdata@123';
+
+--> Change the login password of jim from Bigdata@ to Abcd@123.
+ALTER USER jim IDENTIFIED BY 'Abcd@123' REPLACE 'Bigdata@123';
+
+--> Grant the CREATEROLE permission to user jim.
+ ALTER USER jim CREATEROLE; 
+
+--> Lock the jim account: 
+ALTER USER jim ACCOUNT LOCK; 
+
+--> Unlock the jim account. 
+ALTER USER jim ACCOUNT UNLOCK; 
+
+--> Delete a user.
+DROP USER jim CASCADE;
+
+---> Role Management
+--> Create role manager whose password is Bigdata123@.
+CREATE ROLE manager IDENTIFIED BY 'Bigdata@123'; 
+
+--> Create a role. The role takes effect from July 1, 2020 and expires on December 1, 2020. 
+CREATE ROLE miriam WITH LOGIN PASSWORD 'Bigdata@123' VALID BEGIN '2020-07-01' VALID UNTIL '2020-12-01'; 
+
+--> Change role manager to the system administrator: 
+ALTER ROLE manager SYSADMIN; 
+
+--> Delete the role manager. 
+DROP ROLE manager;
+
+--> View the roles. 
+SELECT * FROM PG_ROLES; 
+
+---> Schema Management 
+--> Create the ds schema
+ CREATE SCHEMA ds;
+
+--> Rename the ds schema to ds_new.
+ALTER SCHEMA ds RENAME TO ds_new;
+
+--> Create a user named jack. 
+CREATE USER jack PASSWORD 'Bigdata@123'; 
+
+--> Change the owner of ds_new to jack. 
+ALTER SCHEMA ds_new OWNER TO jack; 
+
+--> View the schema owner.
+SELECT s.nspname,u.usename AS nspowner FROM pg_namespace s, pg_user u WHERE s.nspowner = u.usesysid; 
+
+--> Delete user jack and the ds_new schema
+ DROP SCHEMA ds_new;
+ DROP USER jack; 
+
+---> Granting System Permissions to Users or Roles
+--> user joe and grant the sysadmin permissions to the user.
+Create CREATE USER joe PASSWORD 'Bigdata@123';
+ALTER USER joe with sysadmin;
+
+---> Granting Database Object Permissions to Roles or Users
+--> Revoke the sysadmin permission of user joe,
+ALTER USER joe with nosysadmin; 
+-->  create the tpcds schema
+CREATE SCHEMA tpcds;
+--> create a reason table for the tpcds schema
+ CREATE TABLE tpcds.reason 
+( .... );
+--> Grant the usage permission on the tpcds schema
+GRANT USAGE ON SCHEMA tpcds TO joe;
+--> all the permissions on the tpcds.reason table to the user joe.
+GRANT ALL PRIVILEGES ON tpcds.reason TO joe;
+
+--> Grant the query permission on r_reason_sk, r_reason_id, and r_reason_desc columns and 
+the update permission on the r_reason_desc column in the tpcds.reason table to user joe. 
+GRANT select (r_reason_sk,r_reason_id,r_reason_desc),update (r_reason_desc) ON tpcds.reason TO joe; 
+
+--> Grant the postgres database connection permission and schema creation permission to user 
+joe, and enable this user to grant these permissions to other users. 
+GRANT create,connect on database postgres TO joe WITH GRANT OPTION; 
+
+--> Create role tpcds_manager, grant the tpcds schema access permission and object creation 
+permission to this role, but do not enable this role to grant these permissions to others.
+CREATE ROLE tpcds_manager PASSWORD 'Bigdata@123'; 
+GRANT USAGE,CREATE ON SCHEMA tpcds TO tpcds_manager; 
+
+---> Granting the Permissions of One User or Role to Others 
+--> Create the manager role, grant joe's permissions to manager
+CREATE ROLE manager PASSWORD 'Bigdata@123'; 
+--> allow manager to grant these permissions to others
+GRANT joe TO manager WITH ADMIN OPTION; 
+
+--> grant manager's permissions to senior_manager.
+ GRANT manager TO senior_manager; 
+
+---> Revoking Permissions
+--> Revoke permissions and delete users. 
+ REVOKE manager FROM joe; 
+
+
+
+
+
+
+
+
+
+
+
