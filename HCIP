@@ -644,6 +644,137 @@ openGauss=# SELECT pg_catalog.ledger_hist_repair('ledgernsp', 'usertable');
 openGauss=# SELECT pg_catalog.ledger_gchain_repair('ledgernsp', 'usertable');
 
 /**/ch6/**/
+--->Procedure
+create db, create user, grant all to user, create tb ,insert data
+
+-> DB Security Management
+create user ,
+finance=> GRANT select ON table bank_card to user1;
+finance=> GRANT select ON table client to user1;
+finance=> GRANT select ON table fund to user1;
+finance=> GRANT select ON table property to user1;
+finance=> select * from property;
+
+->Use row-level security to restrict fund_app to access only fund-related....
+finance=>ALTER TABLE property ENABLE ROW LEVEL SECURITY;
+finance=>CREATE ROW LEVEL SECURITY POLICY property_rls ON property
+USING(current_user !='fund_app' or current_user ='fund_app' and pro_type =3);
+
+---> Advanced SQL Syntax
+finance=>                           /*/Implement complex queries using right join and aggregate functions
+select c_id_card, c_name,sum(pro_income) total_income
+from
+client c,
+bank_card b,
+property p,
+(select p_name name, p_id pro_pif_id, 1 pro_type from finances_product union all
+select i_name name, i_id pro_pif_id, 2 pro_type from insurance union all
+select f_name name, f_id pro_pif_id, 3 pro_type from fund) d
+where
+c.c_id = p.pro_c_id
+and c.c_id = b.b_c_id(+)
+and p.pro_pif_id=d.pro_pif_id
+and p.pro_type=d.pro_type
+group by c_id_card, c_name
+order by 2 desc;
+
+finance=>                   /*/Run the EXPLAIN ANALYZE command to view the execution plan 
+explain analyze select c_id_card, c_name,sum(pro_income) total_income
+from
+client c,
+bank_card b,
+property p,
+(select p_name name, p_id pro_pif_id, 1 pro_type from finances_product union all
+select i_name name, i_id pro_pif_id, 2 pro_type from insurance union all
+select f_name name, f_id pro_pif_id, 3 pro_type from fund) d
+where
+c.c_id = p.pro_c_id
+and c.c_id = b.b_c_id(+)
+and p.pro_pif_id=d.pro_pif_id
+and p.pro_type=d.pro_type
+group by c_id_card, c_name
+order by 2 desc;
+
+---> DB Object Management
+openGauss=# \c finance          /*/Switch to DB
+finance=# \d                    /*/View all tables
+finance=# \d property           /*/View the detailed definition
+finance=# \di                   /*/View all indexes.
+finance=# \d bank_card_pkey     /*/detailed definition of a specific index
+[
+/*/Query the sessions and SQL statements running in the current database
+openGauss=# select a.tid,a.thread_name,a.query_id,a.wait_status,a.wait_event,left(b.query,50)
+from dbe_perf.thread_wait_status a left join dbe_perf.session_stat_activity b
+on a.tid=b.pid and a.query_id =b.q
+]
+
+---> Health Check
+[omm@ecs-840f lab]$ dirname `which gs_check`    /*/Obtain the gs_check directory.
+[
+/*/Replace /opt/huawei/install/om/script in the following command .....
+[omm@ecs-840f lab]$ find /opt/huawei/install/om/script/gspylib/inspection/items/ |grep '.py$' | awk - 
+F/ '{print $(NF-1), substr($NF,1,length($NF)-3)}'
+]
+
+[omm@ecs-840f lab]$ for i in `cat check_db_list`; do gs_check -L -i $i; done      /*/Check all database check items. 
+
+->Perform ANALYZE operation.
+finance=# analyze insurance;
+finance=# analyze bank_card;
+finance=# analyze client;
+finance=# analyze finances_product;
+finance=# analyze property;
+finance=# analyze fund;
+finance=# analyze dbe_pldeveloper.gs_source;
+
+[omm@ecs-840f lab]$ gs_check -L -i CheckUnAnalyzeTable           /*/Run gs_check on CheckUnAnalyzeTable again
+
+--->Performance Check
+[omm@ecs-840f ~]$ gs_checkper
+[omm@ecs-840f lab]$ gs_checkperf -i PMK --detail
+
+--->Log Collection
+[omm@ecs-840f lab]$ gs_collector --begin-time='20231101 07:00' --end-time='20231107 16:10'
+[omm@ecs-840f lab]$ tar zxvf /var/log/omm/omm/collector_20231020_072319.tar.gz    /*/ decompres package
+[omm@ecs-840f lab]$ cd collector_20231020_072319/    /*/decompres directory
+[omm@ecs-840f collector_20231020_072319]$ tar zxvf ecs-840f.tar.gz
+[omm@ecs-840f collector_20231020_072319]$ vi ecs-840f/systemfiles/OS_information_*.txt
+[omm@ecs-840f collector_20231020_072319]$ vi ecs-840f/systemfiles/database_system_info_*.txt
+[omm@ecs-840f collector_20231020_072319]$ vi ecs-840f/catalogfiles/*_pg_*
+[omm@ecs-840f collector_20231020_072319]$ vi ecs-840f/configfiles/config_*/dn_6001/*.conf
+
+--->Parameter Settings
+[omm@ecs-840f lab]$ free -h                              /*/Check the total memory and free memory
+openGauss=# show shared_buffers;                        /*/Check the shared buffer size 
+openGauss=# alter system set shared_buffers='10GB';    /*/Adjust the shared buffer parameter
+[omm@ecs-e1b3 ~]$ gs_om -t stop;                      /*/Stop the database
+[omm@ecs-840f lab]$ gsql -d postgres -p 26000 -r -c 'show shared_buffers'      /*/Check that the parameter has been adjusted successfully
+
+--->Background Maintenance
+finance=# analyze verbose many_clients;       /*/analyz tb akat many_cli name tb'a
+finance=# \dt+ many_clients;                  /*/Check the size 
+finance=# REINDEX INDEX mc_gid;              /*/Use REINDEX to re-create the mc_gid index
+
+--->WDR
+openGauss=# show enable_wdr_snapshot;
+openGauss=# alter system set enable_wdr_snapshot=on;
+openGauss=# select * from snapshot.snapshot;
+openGauss=# select create_wdr_snapshot();
+openGauss=# \a \t \o wdr.html                /*/Use the latest two snapshots to generate
+openGauss=# select generate_wdr_report(1, 2, 'all', 'node', pgxc_node_str()::cstring);
+
+--->Encrypted Query
+/*/Create the KMS directory for creating an encrypted database as user omm.
+[omm@ecs-840f lab]$ mkdir -p $GAUSSHOME/etc/localkms/
+gsql -p 26000 finance -r -C
+/*/create CMK
+finance=# CREATE CLIENT MASTER KEY finCMK WITH (KEY_STORE = localkms, KEY_PATH = "finance", ALGORITHM = RSA_2048);
+/*/Create a CEK
+finance=# CREATE COLUMN ENCRYPTION KEY finCEK WITH VALUES (CLIENT_MASTER_KEY = finCMK, ALGORITHM = AEAD_AES_256_CBC_HMAC_SHA256);
+
+
+
+
 
 
 
