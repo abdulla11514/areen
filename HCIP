@@ -155,6 +155,71 @@ select pkg_service.job_cancel(1);
 
 //ch2//
 
+---> Checking the Database Cluster Status
+gs_om -t status --detail 
+
+---> Generating Static Configuration Files
+gs_om -t generateconf -X /opt/software/openGauss/cluster_config.xml --distribute
+
+---> Checking the Database Status 
+->Perform a single-item check // check item
+gs_check -i CheckCPU
+-> Perform a local check. //check is executed locally.
+gs_check -i CheckCPU -L
+-> Perform a scenario-specific check.
+gs_check -e inspect 
+
+--->Check the OS
+[root@]# gs_checkos -i A -X /opt/software/openGauss/cluster_config.xml --detail -o /var/log/checkos
+-> View the output
+[root@Run861 log]#cd /var/log
+[root@Run861 log]# more checkos 
+
+---> Database Parameters
+-> Check the value of max_connections
+gs_guc check -D /opt/huawei/install/data/dn -c "max_connections"
+-> change to 800
+gs_guc reload -N all -I all -c "max_connections=800"
+show max_connections;  //dway ama gs-om -t restart ka pshani aya
+
+--->  Lock Waits
+-> create tb and insert data
+-> Start a transaction and lock the graderecord table.
+START TRANSACTION;
+LOCK TABLE graderecord IN ACCESS EXCLUSIVE MODE;
+-> modify a record in the graderecord table.
+update graderecord set name='James' where number='210102';
+->query lock waits.
+select usename,granted,locktag,query_start,query,l.pid from pg_locks l,pg_stat_activity a
+where l.pid=a.pid and locktag in(select locktag from pg_locks where granted='f');
+
+--->WDR
+[omm@]$ gs_guc set -N all -I all -c " enable_wdr_snapshot=on"
+gs_om -t restart
+openGauss=# select name ,setting from pg_settings where name like '%wdr%';
+->View WDR snapshot information.
+select * from snapshot.snapshot;
+->Query the value of pgxc_node_name
+show pgxc_node_name;
+->Run the \a \t \o Server file path command to generate WDR //amay xwarawa shar7a
+\a: changes to the unaligned mode.
+\t: changes the information
+\o: sends all the query results to a server
+\a \t \o /home/omm/wdrTest.html  //ama walama
+->View the generated WDR.
+[omm@]$ pwd
+/home/omm
+[omm@]$ ls -l
+
+//ch3//
+
+
+
+
+
+
+
+
 
 
 
