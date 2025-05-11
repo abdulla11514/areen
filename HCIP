@@ -153,7 +153,7 @@ select pkg_service.job_update(1,sysdate,'sysdate+1',null);
 -> Delete the scheduled job.
 select pkg_service.job_cancel(1);
 
-//ch2//
+/**/ch2/**/
 
 ---> Checking the Database Cluster Status
 gs_om -t status --detail 
@@ -211,8 +211,278 @@ show pgxc_node_name;
 /home/omm
 [omm@]$ ls -l
 
-//ch3//
+/**/ch3/**/
 
+---> Database Constraints
+->Use the UNIQUE constraint to ensure that the values
+CREATE TABLE t_unique(
+id INT UNIQUE,
+c1,
+c2
+);
+ALTER TABLE t_unique ADD CONSTRAINT uk_t_unique UNIQUE (c1, c2);
+\d+ t_unique;
+
+->Use the PRIMARY KEY constraint.
+CREATE TABLE t_prkey(
+id INT NOT NULL PRIMARY KEY,
+ALTER TABLE t_prkey ADD CONSTRAINT pk3 PRIMARY KEY (c1);
+->Use the FOREIGN KEY constraint.
+ALTER TABLE emp ADD CONSTRAINT fk_emp_dept FOREIGN KEY (department_id) REFERENCES dept(department_id);
+\d+ emp
+
+--->Procedure
+openGauss=# SELECT
+e.first_name,
+e.last_name,
+e.salary,
+d.department_id,
+d.department_name
+FROM employees e join departments d
+On e.department_id = d.department_id; 
+->Query the names, salaries all departments.
+select
+e.last_name,
+e.sala,
+FROM departments d LEFT JOIN employees e
+ON e.department_id = d.department_id; 
+
+---> UNION Clause // dw tb drwskaw insert data bka enja am codea
+SELECT * FROM t_demo
+UNION             // or write " UNION ALL "
+SELECT * FROM t_demo_copy;
+
+--->WHERE Clause
+select * from employees where hire_date between '2005-06-24' and '2007-12-31' and salary < 5000;
+select * from employees where (department_id in(30,60) or salary > 4000) and first_name not like 'D%' ;
+
+--->Grouping and Sorting
+SELECT
+AVG(salary),MAX(salary),MIN(salary),SUM(salary)
+FROM employees;
+
+SELECT department_id,AVG(salary),COUNT(*),
+MAX(salary),MIN(salary),SUM(salary)
+FROM employees
+GROUP BY department_id
+order by max desc;
+
+//Having avg < 7000  //agar am marja habw pesh order binusa
+order by max desc;
+
+
+--->SubQuery Derived Table
+Select partment_name, ds.sum_salary
+ FROM departments d
+ JOIN (SELECT department_id, ROUND(AVG(salary), 2) AS sum_salary
+ FROM employees
+ group by department_id ) ds ON (d.department_id = ds.department_id);
+
+->IN Operator
+SELECT d.department_id,
+d.department_name
+FROM departments d
+WHERE d.department_id in (SELECT department_id FROM employees WHERE
+salary > 5000);
+
+->ALL Operator
+SELECT first_name, last_name, salary
+FROM employees
+WHERE salary > ALL(SELECT salary
+FROM employees
+WHERE department_id =30);
+
+->ANY Operator
+SELECT first_name, last_name, salary
+FROM employees
+WHERE salary > ANY(SELECT salary
+FROM employees
+WHERE department_id =30);
+
+->EXISTS Operator
+SELECT d.department_id,
+d.department_name
+FROM departments d
+WHERE exists (SELECT * FROM employees WHERE department_id = d.department_id
+and salary > 5000);
+
+->Correlated Subquery
+ SELECT first_name, last_name, salary
+FROM employees o
+WHERE o.salary >(SELECT avg(salary)
+FROM employees i
+WHERE i.department_id = o.department_id);
+
+SELECT department_id,
+d.department_name,
+(SELECT SUM(salary)
+FROM employees e
+WHERE e.department_id = d.department_id) AS sum_salary
+FROM departments d;
+
+->Subquery in INSERT and UPDATE
+insert into employees_new      //data old tb akata new tb
+select *
+from employees e
+where e.employee_id in(select e.employee_id
+ from employees
+ where e.salary > 5000);
+
+--->Functions
+select abs(-15.9);
+select ceil(15.3);
+select floor(15.3);
+select power(5,3);
+SELECT div(11,3), mod(11,3);
+SELECT random();
+
+->Character Processing 
+select concat('123','xyz','456');
+select concat_ws('-','123','xyz','456');
+select replace('12345623','23','xyz');
+SELECT INSTR('123456abcd123456abcd', '45'), INSTR('123456abcd123456abcd', 'bcd', 1,2 );
+SELECT lower('JAMES'), upper('James');
+select substr('abcdefg',3,4);
+
+->Time/Date
+SELECT age(timestamp '2023-09-30', timestamp '2023-09-05');
+select current_timestamp,current_date;
+
+->Type Conversion
+SELECT CAST ('201' AS INTEGER), '2023-09-15'::DATE;
+select to_date('2023/09/15','YYYY/MM/DD');
+SELECT to_char(current_timestamp, 'HH24:MI:SS');
+
+-> System Information Functions
+select pg_postmaster_start_time(),current_catalog,current_database(),get_hostname();
+select current_schema;
+select user,current_user,current_role,session_user,pg_current_userid();
+
+--->Stored Procedures and Triggers
+CREATE OR REPLACE PROCEDURE p1 IS
+BEGIN
+INSERT INTO t1 VALUES (1,'Li Ming');
+COMMIT;
+END;
+/
+call p1();
+select * from t1;
+DROP PROCEDURE p1; 
+
+--->Stored Procedure with Parameters
+CREATE OR REPLACE PROCEDURE p2 ( param1 IN INTEGER, param2 IN OUT
+INTEGER )
+AS
+BEGIN
+param2:= param1 * param2;
+RAISE INFO 'param2 is: %', param2;
+END;
+/
+call p2(6,7);
+
+---> Anonymous Blocks
+ DO $$
+DECLARE
+name text;
+BEGIN
+name := 'PL/SQL';
+RAISE NOTICE 'Hello %!', name;
+END $$;
+
+--->Nested Subblocks
+DO $$
+DECLARE
+name text;
+BEGIN
+name := 'outer_block';
+RAISE NOTICE 'This is %', name;
+DECLARE
+name text := 'sub_block';
+BEGIN
+RAISE NOTICE 'This is %', name;
+RAISE NOTICE 'The name FROM the outer block is %',name;
+END;
+RAISE NOTICE 'This is %', name;
+END $$;
+
+--->Conditional Statements
+ DO $$
+DECLARE
+ i integer := 4;
+ j integer := 5;
+BEGIN
+ IF i > j THEN
+ RAISE NOTICE 'i is greater than j';
+ ELSIF i < j THEN
+ RAISE NOTICE 'i is less than j';
+ ELSE
+ RAISE NOTICE 'i is equal to j';
+ END IF;
+END $$;
+/
+
+--->Loop Statements
+DO $$
+DECLARE
+ i integer := 0;
+BEGIN LOOP
+ EXIT WHEN i = 8;
+ i := i + 1;
+ RAISE NOTICE 'Loop: %', i;
+ END LOOP;
+END $$;
+
+ DO $$
+DECLARE
+ i integer := 0;
+BEGIN LOOP
+ EXIT WHEN i = 8;
+ i := i + 1;
+ CONTINUE WHEN mod(i, 2) = 1;
+ RAISE NOTICE 'Loop: %', i;
+ END LOOP;
+END $$;
+
+--->FOR Statement
+DO $$
+BEGIN
+ FOR i IN 1..6 LOOP
+ RAISE NOTICE 'Output: %', i;
+ END LOOP;
+END $$;
+
+ DO $$
+DECLARE
+e record;
+BEGIN
+FOR e IN (SELECT * FROM employees LIMIT 5) LOOP
+RAISE NOTICE 'Loop: %,%', e.first_name, e.last_name;
+END LOOP;
+END $$;
+
+--->Error Trapping Statement
+CREATE OR REPLACE PROCEDURE proc_exp()
+AS
+DECLARE
+ x INT :=0;
+ y INT;
+BEGIN
+ UPDATE employees SET first_name = 'James' WHERE first_name = 'John';
+ x := x + 1;
+ y := x / 0;
+EXCEPTION
+ WHEN division_by_zero THEN
+ RAISE NOTICE 'caught division_by_zero';
+ RAISE NOTICE 'x: %',x;
+ RETURN ;
+END;
+/
+call proc_exp();
+
+/**/ch4/**/
+skip
+
+/**/ch5/**/
 
 
 
