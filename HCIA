@@ -310,6 +310,105 @@ drop user joe;
 
 // lec 3 \\
 
+--> Querying Data 
+-->Use an asterisk (*) after SELECT to query all columns in the bank_card table. 
+SELECT * FROM bank_card;   
+
+--> Check the bank card number and card type in the bank_card table.
+SELECT b_number,b_type FROM bank_card;
+
+--> View the ID, name, email address, and bank card number of customer 1.
+SELECT a.c_id,a.c_name, a.c_mail, b.b_number FROM client a, bank_card b where a.c_id= 1 and b.b_c_id = 1; 
+
+ -->  Use an alias. 
+SELECT b_c_id AS CardID, b_type CardType FROM bank_card; 
+
+--> Conditional Query 
+--> Query information about a credit card in the bank_card table
+SELECT * FROM bank_card WHERE b_type= 'Credit Card'; 
+
+
+-->  Query information about a credit card whose customer ID is 1 from the bank_card table. 
+SELECT * FROM bank_card where b_c_id= 1and b_type='Credit Card'; 
+
+---> Join Query
+-->  Use an inner join to query tables. Query the customer ID, bank card number, and bank card type. 
+-> Use the (c_id) column of the client and bank_card tables to perform the query operation.
+SELECT c.c_id, b.b_number, b.b_type FROM client c JOIN bank_card b ON (b.b_c_id = c.c_id); 
+
+-->  Use the left outer join to query the customer ID, user name, bank card number, and bank card type. 
+SELECT c.c_id,c.c_name, b.b_number,b.b_type FROM client c left join bank_card b on c.c_id=b.b_c_id;                          
+
+--> Use the right outer join to query data in the client and bank_card tables.
+SELECT c.c_id,c.c_name, b.b_number,b.b_type FROM client c right join bank_card b on c.c_id =b.b_c_id;                        
+
+--> Obtain the full join data of the client and bank_card tables through a full join. 
+SELECT c.c_id,c.c_name, b.b_number,b.b_type FROM client c FULL JOIN bank_card b ON (b.b_c_id = c.c_id); 
+
+---> Data Sorting
+--> Query the names, amounts, and target people of insurances with insurance numbers higher than 2 in descending order.
+SELECT i_name,i_amount,i_person FROM insurance WHERE i_id>2 ORDER BY i_amount DESC; 
+
+---> Data Limit 
+--> Query the insurance information in the following table. Add LIMIT 2 OFFSET 1 to skip the first row and query a total of two rows
+SELECT i_name, i_id, i_amount, i_person FROM insurance LIMIT 2 OFFSET 1; 
+
+---> Updating Data 
+--> Insert data into the bank_card table.
+INSERT INTO bank_card(b_number, b_type, b_c_id) VALUES ('6222022302020000030','Savings Card', 30); 
+INSERT INTO bank_card(b_number, b_type, b_c_id) VALUES ('6222022302020000031','Savings Card', 31); 
+INSERT INTO bank_card(b_number, b_type, b_c_id) VALUES ('6222022302020000032','Savings Card', 32);  
+
+-->  Insert all data from the bank_card table into the bank_card1 table using a subquery.
+CREATE TABLE bank_card1(b_number NCHAR(30) PRIMARY KEY, b_type NCHAR(20), b_c_id INT NOT NULL); 
+INSERT INTO bank_card1 SELECT * FROM bank_card; 
+
+-->  Insert a record and update a value for columns in which this primary key is a duplicate. 
+INSERT INTO bank_card VALUES ('6222022302020000001', 'Credit Card', 1) ON DUPLICATE KEY UPDATE b_type = 'Savings Card';
+
+
+--> Query records in the bank_card table. 
+SELECT * FROM bank_card;  
+
+-->  Update the record whose customer ID is 1 in the bank_card table and change the value of b_type to Credit Card. 
+UPDATE bank_card SET bank_card.b_type = 'Credit Card' where b_c_id=1; 
+
+---> Deleting Data 
+--> Delete the records, whose b_type is Credit Card and b_c_id is 1, from the bank_card table
+DELETE FROM bank_card WHERE b_type='Credit Card' AND b_c_id=1; 
+
+--> Query records in the bank_card table.
+SELECT * FROM bank_card;                                                                                                     
+
+-->  Delete all data from the bank_card table.
+DELETE FROM bank_card; 
+
+--> Query records in the bank_card table.
+SELECT * FROM bank_card;   
+
+---> Defining Data
+--> Change the maximum number of connections to database music.
+ALTER DATABASE music WITH CONNECTION LIMIT 30; 
+
+--> Rename the database. 
+ALTER DATABASE music RENAME TO music01; 
+
+--> Change the default tablespace of the database. 
+CREATE TABLESPACE tablespace01 RELATIVE LOCATION 'tablespace01/tablespace_01'; 
+ALTER DATABASE music01 SET TABLESPACE tablespace01;
+
+--> Change the database owner
+ALTER DATABASE music01 OWNER TO jim01; 
+
+---> Deleting a Database
+--> Delete a database.
+DROP DATABASE music01; 
+
+--> Delete users. 
+DROP USER jim;  
+DROP USER jim01; 
+
+---> Defining a Schema 
 
 
 
