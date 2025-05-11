@@ -550,33 +550,382 @@ skip
 
 // lec 5 \\
 
+---> Database Connection Settings
+--> Modify the pg_hba.conf file of the database
+cd /gaussdb/data 
+vi pg_hba.conf
 
+--> Change the database listening address.   step by step
+cd /gaussdb/data 
+vi postgresql.conf
+#listen_addresses = '192.168.0.19'              
+#what IP address(es) to listen on; 
+listen_addresses = '*'
+gs_guc set -N all -I all -c "listen_addresses='*'" 
 
+--> Restart the database to make the modification take effect. 
+gs_ctl restart -D /gaussdb/data/ 
 
+---> Creating a Database and a Schema
+--> Run the meta-command to view the database.
+\l 
 
+--> Change the default schema search path of the finance database to public and finance. 
+ALTER DATABASE finance SET search_path TO finance,public; 
 
+--> View the default schema search path of the finance database. 
+show search_path 
 
+--> Exit the database. 
+\q 
 
+---> Creating and Configuring a Tablespace
+--> Run the meta-command to view the tablespace. .
+\db 
 
+--> Query the current usage of the tablespace. The result indicates the size of the tablespace, in bytes. 
+SELECT PG_TABLESPACE_SIZE('finance_tbs'); 
 
+--> Set the created tablespace to the default tablespace of the finance database
+ALTER DATABASE finance SET tablespace finance_tbs; 
 
+--> Modify the default tablespace of the finance database again. 
+ALTER DATABASE finance SET tablespace finance_tbs; 
 
+---> Creating a User and Granting Permissions to It
+--> Grant the SCHEMA permission to the bank_app user. 
+GRANT ALL ON SCHEMA finance to bank_app;
 
+---> Connecting to a Database as a New User 
+gsql -d finance -U bank_app -p 26000 -r 
 
+--> Access the bank_card table in the finance database.
+\du; 
 
+--> Set the default search path to finance.
+SET search_path TO finance;  
 
+--> Check search_path. 
+show search_path; 
 
+---> Creating a Data Table 
+--> View the created tables.
+\d+;
 
+---> Inserting Data Into a Table
+INSERT INTO finance.property(pro_id,pro_c_id,pro_pif_id,pro_type,pro_status,pro_quantity,pro_income,pro_purchase_time) VALUES 
+(2,10,2,2,'available',4,8000,'2018-07-01'); 
 
+---> Inserting a Data Record Manually
+--> Values of c_id_card and c_phone are not unique. 
+INSERT INTO finance.client(c_id,c_name,c_mail,c_id_card,c_phone,c_password) VALUES (31,'Li 
+Li','lili@huawei.com','340211199301010005','18815650005','gaussdb_005') 
 
+--> Add information about a customer to the client table in the finance database to meet the 
+constraints in the table (in a scenario where the insertion succeeds).
+INSERT INTO finance.client(c_id,c_name,c_mail,c_id_card,c_phone,c_password) VALUES (31,'Li 
+Li','lili@huawei.com','340211199301010031','18815650031','gaussdb_031')
 
+--> Verify the insertion result. 
+select * from finance.client where c_id=31; 
 
+---> Adding a Constraint
+-->Add a foreign key constraint to the bank_card table.
+ALTER TABLE finance.bank_card ADD CONSTRAINT fk_c_id FOREIGN KEY (b_c_id) REFERENCES finance.client(c_id) ON DELETE CASCADE; 
 
+--> Add a foreign key constraint to the property table. 
+ALTER TABLE finance.property ADD CONSTRAINT fk_pro_c_id FOREIGN KEY (pro_c_id) REFERENCES finance.client(c_id) ON DELETE CASCADE; 
 
+--> Add a constraint that the value of the f_amount column is greater than or equal to 0 to the fund table. 
+ALTER table finance.fund ADD CONSTRAINT c_f_mount CHECK (f_amount >=0); 
 
+---> Add a constraint to the insurance table. 
+-->Add a constraint that the value of the i_amount column is greater than or equal to 0 to the insurance table. 
+ALTER table finance.insurance ADD CONSTRAINT c_i_mount CHECK (i_amount >=0); 
 
+---> Querying Data
+--> Query wealth management products.
+SELECT * from finance.finances_product; 
 
+---> Perform a conditional query. 
+--> Query available property data in the property table. 
+SELECT * from finance.property where pro_status='available'; 
 
+---> Perform an aggregation query. 
+--> Check the number of customers in the client table.
+SELECT count(*) FROM finance.client; 
+
+--> Query the numbers of debit cards and credit cards in the bank_card table.
+SELECT b_type,COUNT(*) FROM finance.bank_card GROUP BY b_type; 
+
+--> Query the average insurance amount in the insurance table.
+SELECT AVG(i_amount) FROM finance.insurance; 
+
+--> Query the insurance type and amount corresponding to the maximum and minimum insurance amounts in the insurance table. 
+SELECT i_name,i_amount from finance.insurance where i_amount in (select max(i_amount) from finance.insurance) union
+SELECT i_name,i_amount from finance.insurance where i_amount in (select min(i_amount) from finance.insurance); 
+
+--> The semi-join query is performed to query the customer ID, name, and ID card number in the bank_card table. 
+SELECT c_id,c_name,c_id_card FROM finance.client WHERE EXISTS (SELECT * FROM finance.bank_card WHERE client.c_id = bank_card.b_c_id); 
+
+--> The anti-join query is performed to query the customer ID, name, and ID card number of a 
+--> customer whose bank card number is not 622202230202000001* (* means unknown). 
+SELECT c_id,c_name,c_id_card FROM finance.client WHERE c_id NOT IN (SELECT b_c_id FROM finance.bank_card 
+WHERE b_number LIKE '622202230202000001_'); 
+
+---> Perform a subquery. 
+--> The subquery is performed to query the names of insurance products whose insurance amount 
+is greater than the average amount and the target people. 
+SELECT i1.i_name,i1.i_amount,i1.i_person FROM finance.insurance i1 WHERE i_amount > (SELECT avg(i_amount) 
+FROM finance.insurance i2); 
+
+---> Perform a query by using the ORDER BY clause. 
+--> Query the names, amounts, and target people of insurances with insurance numbers higher than 2 in descending order. 
+SELECT i_name,i_amount,i_person FROM finance.insurance WHERE i_id>2 ORDER BY i_amount DESC; 
+
+---> Perform a query by using the GROUP BY clause. 
+--> Query the total number of wealth management products and group them by p_year. 
+SELECT p_year,count(p_id) FROM finance.finances_product GROUP BY p_year; 
+
+--> Query the number of customers whose insurance amount is 2
+SELECT i_person,count(i_amount) FROM finance.insurance GROUP BY i_person HAVING count(i_amount)=2; 
+
+---> Perform a query by using the WITH AS clause. 
+--> WITH AS is used to query the fund table.
+WITH temp AS (SELECT f_name,ln(f_amount) FROM finance.fund ORDER BY f_manager DESC) SELECT * FROM temp; 
+
+---> View
+--> Create a view for querying the ID, name, and ID card number of a customer in the bank_card table. 
+CREATE VIEW finance.v_client as SELECT c_id,c_name,c_id_card FROM finance.client WHERE EXISTS (SELECT * 
+FROM finance.bank_card WHERE client.c_id = bank_card.b_c_id);  
+
+--> Perform a query by using the view. 
+SELECT * FROM finance.v_client; 
+
+---> Modify the view. 
+--> The view is modified to filter out credit card holders based on the original query result.
+CREATE OR REPLACE VIEW finance.v_client as SELECT c_id,c_name,c_id_card FROM finance.client WHERE EXISTS 
+(SELECT * FROM finance.bank_card WHERE client.c_id = bank_card.b_c_id and bank_card.b_type='credit card'); 
+
+--> Perform a query by using the view. 
+select * from finance.v_client; 
+
+--> Change the view name.
+ALTER VIEW finance.v_client RENAME TO v_client_new; 
+
+---> Delete the view. 
+--> Delete the v_client view. Deleting the view does not affect the base table.
+DROP VIEW finance.v_client_new; 
+
+---> Index
+--> Create an index in the property table. 
+CREATE INDEX finance.idx_property ON finance.property(pro_c_id DESC,pro_income,pro_purchase_time); 
+
+--> Run the meta-command to view the created index.
+\di idx_property
+
+---> Rename the index. 
+-->Rebuild the index in the property table and rename the index. Rebuild the index.
+DROP INDEX finance.idx_property; 
+CREATE INDEX finance.idx_property ON finance.property(pro_c_id DESC,pro_income,pro_purchase_time); 
+
+--> Rename the index. 
+ALTER INDEX finance.idx_property RENAME TO idx_property_temp; 
+
+--> Run the meta-command to view the created index.
+\di idx_property_temp 
+
+---> Delete the index. 
+--> Delete the idx_property_temp index. 
+DROP INDEX finance.idx_property_temp; 
+
+---> Updating and Deleting Data
+--> View the table data. 
+SELECT * FROM finance.bank_card where b_c_id<10 ORDER BY b_c_id; 
+
+--> Update the data. 
+UPDATE finance.bank_card SET bank_card.b_type='debit card' from finance.client where bank_card.b_c_id = 
+client.c_id and bank_card.b_c_id<10;
+
+--> Query the data again. 
+SELECT * FROM finance.bank_card ORDER BY b_c_id; 
+
+--> Query the result before deletion. 
+SELECT * FROM finance.fund; 
+
+--> Delete the data. 
+DELETE FROM finance.fund WHERE f_id<3; 
+
+--> Query the deletion result. 
+SELECT * FROM finance.fund; 
+
+--> Deleting a Schema and a Database 
+--> n the \dn command to view the schema in the database.
+\dn 
+
+--> Run the \dt command to view the objects in the finance database. 
+\dt  
+
+--> Run the DROP SCHEMA command to delete the finance database. An error is reported because objects exist in the finance database.
+DROP SCHEMA finance; 
+
+--> Run the DROP SCHEMA....CASCADE command to delete the finance database, which will also delete the objects in the finance database.
+DROP SCHEMA finance CASCADE; 
+
+// lec 6 \\
+
+--> Vi/Vim 
+vim clusterconfig.xml 
+
+--> cd
+If no argument is specified, the current directory is switched. 
+The value . indicates the current directory. 
+The value .. indicates the upper-level directory. 
+The value ~ indicates the home directory. 
+The value / indicates the root directory. 
+
+--> mv
+mv python python.bak
+mv  /physical/backup/*  /data/dbn1 
+
+--> cURL
+-A/--user-agent <string>: Sets the user agent to be sent to the server. 
+-C/--continue-at <offset>: Resumes transmission when a disconnection occurs. 
+-D/--dump-header <file>: Writes the header information to the file. 
+-e/--referer: Specifies the source website. 
+-o/--output: Writes the output to the file. 
+-O/--remote-name: Writes the output to the file and retains the name of the remote file. 
+-s/--silent: Specifies the silent mode. No information is output. 
+-T/--upload-file <file>: Uploads the file. 
+-u/--user <user[:password]>: Sets the username and password of the server. 
+-x/--proxy <host[:port]>: Specifies that the HTTP proxy is used on the specified port. 
+-#/--progress-bar: Displays the current transmission status. 
+Argument description: 
+URL: Specifies the file transfer URL. 
+
+--> Yum
+yum check-update 
+yum update 
+yum list 
+yum install -y libaio-devel flex bison ncurses-devel glibc.devel patch lsb_release wget python3 
+
+--> ln
+ln -s python3 /usr/bin/python 
+ln python3 /usr/bin/python 
+
+--> mkdir
+mkdir test 
+mkdir -p /opt/software/openGauss 
+mkdir –m 777 test 
+
+--> chmod
+chmod ugo+r cluterconfig.xml  
+Or 
+chmod a+r  cluterconfig.xml 
+chmod -R a+rw *
+chmod 777 cluterconfig.xml 
+chmod  R 755 /opt/software/openGauss 
+
+--> chown
+chown omm:dbgrp /opt/software/openGauss/clusterconfig.xml 
+chown -R omm:dbgrp * 
+
+--> ls
+ -l: Displays the detailed information about files, including the creators, creation time, as well as 
+read and write permissions in long format.
+
+-a: Lists all files in a file, including hidden files whose names start with a dot (.) or two dots (..). 
+(The names of hidden files in Linux start with a dot. A file whose name starts with two dots is a 
+parent directory.)   
+
+-d: Lists only the directory instead of files in the directory. It is usually used together with -l. 
+-R: Lists all subdirectories at the same time. It works similar to -l. The only difference is that it 
+does not display the file owners, which is similar to recursion in programming. 
+
+-t: Sorts files by time. 
+-s: Displays the file size after each file. 
+-S: Sorts files by file size.
+
+--> cp
+-> Command for copying the abc file from the home directory to the opt directory: 
+cp /home/abc /opt 
+
+--> rm
+rm qwe 
+rm-rf clusterconfig.log 
+
+--> cat
+cat textfile 
+
+--> Command for adding the content of the textfile1 and textfile2 files to the textfile3 file after 
+adding line numbers to the textfile1 and textfile2 files.
+cat -b textfile1 textfile2 >> textfile3 
+
+--> Command for adding content to the /etc/profile file (you can enter EOF to end the addition):
+cat >>/etc/profile<<EOF 
+>export LD_LIBRARY_PATH=$packagePath/script/gspylib/clib:$LD_LIBRARY_PATH 
+>EOF
+
+\\ lec 7 //
+
+--> Viewing Database Objects
+-->View help information. 
+\?
+
+--> Switch the database.
+\c dbname 
+
+--> List the databases
+\l
+
+--> Run the following command to query the database list in the pg_database system catalog: 
+ SELECT datname FROM pg_database;
+
+--> List tables. 
+\dt 
+
+--> List all tables, views, and indexes. 
+ \d+ 
+
+--> Run the \d+ command of the gsql tool to query table attributes. 
+\d+ tablename
+
+--> View the table structure
+\d tablename  
+
+--> List schemas.
+\dn 
+
+--> View indexes. 
+\di 
+
+--> Query tablespaces.
+\db 
+
+--> Check the pg_tablespace system catalog. Run the following command to view all the tablespaces 
+defined by the system and users: 
+SELECT spcname FROM pg_tablespace; 
+
+--> Query the database user list. 
+SELECT * FROM pg_user;
+
+--> Query user attributes. 
+SELECT * FROM pg_authid
+
+--> Query all roles. 
+ SELECT * FROM PG_ROLES;
+
+--> Query all SQL statements supported by openGauss.
+\h
+
+--> Switch the database.
+\c dbname 
+
+--> Switch the user. 
+\c – username
+
+--> Exit the database.
+\q
 
 
 
