@@ -409,6 +409,165 @@ DROP USER jim;
 DROP USER jim01; 
 
 ---> Defining a Schema 
+--> Rename the schema.
+ALTER SCHEMA role1 RENAME TO role1_new;  
+
+--> Change the owner of the schema. 
+ALTER SCHEMA role1_new OWNER TO jack; 
+
+-->  Deleting a Schema 
+DROP SCHEMA role1_new; 
+
+--->  Defining a Table
+--> Temporary table 
+CREATE TEMPORARY TABLE bank_card2(b_number NCHAR(30) PRIMARY KEY, b_type NCHAR(20),b_c_id INT NOT NULL); 
+
+--> Rename the bank_card table to bank_card1. 
+ALTER TABLE bank_card RENAME TO bank_card1; 
+
+--> Add a column to the bank_card1 table. The data type is Integer.
+ALTER TABLE bank_card1 ADD full_masks INTEGER; 
+
+-->  Change the data type of a column. 
+ALTER TABLE bank_card1 MODIFY full_masks NVARCHAR2(20);
+
+--> Add a constraint. 
+ALTER TABLE bank_card1 ADD CONSTRAINT ck_bank_card CHECK(b_c_id>0); 
+ALTER TABLE bank_card1 ADD CONSTRAINT uk_bank_card UNIQUE(full_masks); 
+
+--> Delete a column.
+ALTER TABLE bank_card1 DROP full_masks; 
+
+-->  Insert data into a table. If the constraint is not met, an error is reported. 
+INSERT INTO bank_card1(b_number, b_type, b_c_id) VALUES ('6222022302020000001','Credit Card', 0); 
+
+---> Deleting Data from a Table
+-->  Delete all rows from the bank_card1 table. 
+DELETE FROM bank_card1; 
+
+-->  Deleting a Table 
+DROP TABLE IF EXISTS bank_card1; 
+
+---> Defining a Partitioned Table
+--> Create a tablespace and a partitioned table
+CREATE TABLESPACE example1 RELATIVE LOCATION 'tablespace1/tablespace_1'; 
+
+--> Modify a tablespace of a partitioned table
+ALTER TABLE bank_card MOVE PARTITION bank_card1 TABLESPACE example3;  
+
+-->  Rename the partitioned table. 
+ALTER TABLE bank_card RENAME PARTITION bank_card1 TO bank_card5; 
+
+--> Combine partitions.
+ALTER TABLE bank_card MERGE PARTITION bank_card1, bank_card2 INTO PARTITION bank_card3;  
+
+--> Delete a partition
+ALTER TABLE bank_card DROP PARTITION bank_card4;
+
+---> Creating an Index
+-->  Create an index on b_number, b_type in the bank_card table.
+CREATE INDEX idx_bank_card ON bank_card(b_number ASC,b_type);
+
+--> Create the education partitioned table. 
+ CREATE TABLE education(staff_id INTEGER NOT NULL, higest_degree CHAR(8), graduate_school 
+VARCHAR(64),graduate_date DATETIME, education_note VARCHAR(70)) 
+PARTITION BY LIST(higest_degree) 
+( 
+PARTITION doctor VALUES ('Doctor'), 
+PARTITION master VALUES ('Master'), 
+PARTITION undergraduate VALUES ('Bachelor') 
+);
+
+-->  Create a partitioned index with the name of the index partition specified. 
+CREATE INDEX idx_education ON education(staff_id ASC, higest_degree) LOCAL (PARTITION doctor, PARTITION master, PARTITION undergraduate); 
+
+---> Modifying an Index 
+--> Rebuild the index. 
+ALTER INDEX idx_bank_card REBUILD;
+
+--> Rename an index.
+ALTER INDEX idx_bank_card RENAME TO idx_bank_card_temp; 
+
+--> Set an index as unusable.
+ALTER INDEX idx_bank_card UNUSABLE; 
+
+--> Delete the idx_bank_card index from the bank_card table.
+DROP INDEX idx_bank_card; 
+
+--> Run the CREATE VIEW command to create a view. 
+CREATE OR REPLACE VIEW privilege_view AS SELECT b_number, b_type FROM bank_card; 
+
+--> Query the data in the view. The syntax is the same as that for querying a table. 
+SELECT * FROM privilege_view; 
+
+--> Query the view structure
+\d privilege_view; 
+
+--> Creating a Sequence 
+CREATE SEQUENCE seq_auto_extend START WITH 10 MAXVALUE 200 INCREMENT BY 2 CYCLE; 
+
+--> Query the next value of seq_auto_extend.
+SELECT seq_auto_extend.NEXTVAL FROM DUAL; 
+
+---> Modifying a Sequence
+-->  Set INCREMENT BY to 4 and MAXVALUE to 400. 
+ALTER SEQUENCE seq_auto_extend MAXVALUE 400 INCREMENT BY 4 CYCLE; 
+
+--> Delete the seq_auto_extend sequence.
+DROP SEQUENCE IF EXISTS seq_auto_extend; 
+
+--> Arithmetic Functions and Operators 
+SELECT 2+3,2*3, @ -5.0, 2.0^3.0, |/ 25.0, 91&15, 17#5,1<<4 AS RESULT; 
+SELECT abs(-10),cos(0),sin(0),acos(1),asin(0); 
+
+-->  bitand(exp1,exp2) performs an AND (&) operation on two digits. 
+SELECT bitand(29,15); 
+
+--> Time and date operators (–)
+SELECT date '2022-5-28' + integer '7' AS RESULT; 
+SELECT date '2022-05-28' + interval '1 hour' AS RESULT;  
+SELECT date '2022-05-28' + time '03:00' AS RESULT;  
+SELECT interval '1 day' + interval '1 hour' AS RESULT;  
+SELECT date '2022-05-01' - date '2022-04-28' AS RESULT;  
+SELECT date '2022-05-01' - integer '7' AS RESULT;  
+SELECT date '2022-05-28' - interval '1 hour' AS RESULT;  
+SELECT time '05:00' - interval '2 hours' AS RESULT;  
+SELECT age(timestamp '2001-04-10', timestamp '1957-06-13'); 
+SELECT current_time; 
+
+--> Type Conversion Functions
+SELECT to_char(125, '999'),to_clob('hello111'::CHAR(15)),to_date('05 Dec 2000', 'DD Mon YYYY'), 
+to_number('12,454.8-', '99G999D9S'); 
+
+-->  cast(x as y) converts x to the type specified by y. 
+SELECT cast('22-oct-1997' as timestamp); 
+
+-->  hextoraw(string) converts a hexadecimal string to RAW. 
+SELECT hextoraw('7D');
+
+// lec 4 \\
+skip
+
+// lec 5 \\
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
