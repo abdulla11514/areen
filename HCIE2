@@ -238,10 +238,25 @@ openGauss=# \o \a \t         /*/Restore to the initial output
 
 ---> Optimizing Subqueries
 ->Correlated Subqueries and Non-correlated Subqueries
+openGauss=# create table t1 (a int, b int);
+openGauss=# create table t2 (a int, b int);
+openGauss=# insert into t1 values(generate_series(1, 100000), generate_series(1, 1000));
+openGauss=# insert into t2 values(generate_series(1, 100000), generate_series(1, 1000));
+openGauss=# \timing on
+openGauss=# select t1.a, t1.b from t1 where t1.a in (select b from t2 where t2.b in (1, 2, 3, 4, 5));
+openGauss=# explain select t1.a, t1.b from t1 where t1.a in (select b from t2 where t2.b in (1, 2, 3, 4,5));
+openGauss=# select t1.a, t1.b from t1 where t1.a in (select b from t2 where t2.a = t1.a and t2.b in (1,2, 3, 4, 5));
 
+--->SQL Rewriting
+->Replace UNION with UNION ALL.
+create table t1 (c1 int, c2 int);
+create table t2 (c1 int, c2 int);
+openGauss=# insert into t1 values(generate_series(1, 10000), generate_series(1, 1000));
+openGauss=# insert into t2 values(generate_series(20000, 30000), generate_series(20000, 30000));
+openGauss=# Explain analyze select c1 from t1 union select c1 from t2;           ///Print the SQL execution
+openGauss=# Explain analyze select c1 from t1 union all select c1 from t2;
 
-
-
+/**/CH6/**/
 
 
 
