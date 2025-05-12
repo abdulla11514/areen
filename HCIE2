@@ -1,1 +1,98 @@
+/**/CH5/**/
+
+--->DB Optimization
+-> Checking the Server Hardware
+uname -a
+->Checking the CPU
+top  //and press 1
+us:
+ni:
+sy:
+wa:
+st:
+id:
+// dway amana press Shift+M to sort the results by memory.
+->check memory
+[root@server1 ~]# free -h
+->Checking the OS Version
+[root@server1 ~]# cat /etc/os-release
+->Checking the Network Status
+[root@server1 ~]#sudo yum install nginx
+[root@server1 ~]# sudo yum install sysstat
+[root@ecs-444 ~]# sar -n DEV 3 2
+-> Checking the I/O Status
+[root@server1 ~]# iostat -xm 3 2
+->query key parameter
+openGauss=# show max_process_memory;
+openGauss=# show shared_buffers;
+openGauss=# show work_mem;
+
+---> Optimizing SQL Queries Using a Vectorized Executor
+create tb ,insert data
+->Enable the time
+openGauss=# \timing on
+-> Disable the vectorized executor
+openGauss=# show try_vector_engine_strategy;
+openGauss=# set try_vector_engine_strategy to off;
+-> Run the query statement
+openGauss=# select count(1) from (select t1.a from vector_t1 t1 left join vector_t2 t2 on t1.a = t2.a);
+-> Enable the vectorized
+openGauss=# set try_vector_engine_strategy to force;
+-> Restore parameter 
+openGauss=# \timing off
+openGauss=# reset try_vector_engine_strategy;
+
+--->SMP-related
+crerate tb,insert data,timeing on'ka
+openGauss=# reset query_dop;
+openGauss=# show query_dop;
+-> run query in normal mode
+openGauss=# select count(1) from smp_t1 where a > 100000;
+->Set query_dop to 4 to enable parallel
+openGauss=# set query_dop = 4;
+/*/agar rest parameter wist time off ka enja restkarawa
+
+--->GUC Parameter Setting and Plan Hints
+create tb,insert data
+->Run explain to print
+openGauss=# explain select t1.a from exp_t1 t1 full join exp_t2 t2 on t1.a = t2.a where t1.a < 10000;
+->Disable the costs display.
+openGauss=# explain(costs off) select t1.a from exp_t1 t1 full join exp_t2 t2 on t1.a = t2.a where t1.a < 10000;
+->Print an execution plan in verbose mode
+openGauss=# explain(verbose) select t1.a from exp_t1 t1 full join exp_t2 t2 on t1.a = t2.a where t1.a < 10000;
+-> execution plan in analyze
+openGauss=# explain analyze select t1.a from exp_t1 t1 full join exp_t2 t2 on t1.a = t2.a where t1.a < 10000;
+->Print the CPU usage.
+openGauss=# explain(analyze on, CPU on) select t1.a from exp_t1 t1 full join exp_t2 t2 on t1.a = t2.a where t1.a < 10000;
+->Print the usage of the buffer
+openGauss=# explain(analyze on, buffers on) select t1.a from exp_t1 t1 full join exp_t2 t2 on t1.a = t2.a where t1.a < 10000;
+->Specify the output format
+openGauss=# set explain_perf_mode = 'normal';
+openGauss=# explain(format json) select t1.a from exp_t1 t1 full join exp_t2 t2 on t1.a = t2.a where t1.a < 10000;
+openGauss=# explain(analyze, format json) select t1.a from exp_t1 t1 full join exp_t2 t2 on t1.a = t2.a where t1.a < 10000;
+->Print an execution plan in performance
+openGauss=# explain performance select t1.a from exp_t1 t1 full join exp_t2 t2 on t1.a = t2.a where t1.a < 10000;
+/*/if performance is used,u can drop the tables
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
