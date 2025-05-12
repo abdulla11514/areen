@@ -206,14 +206,38 @@ openGauss=# explain analyze select * from student_t1 where id = 9999;
 openGauss=# explain analyze select * from student_t1 where id > 100 and id < 1000;  //range query
 
 ---> CBO
+create tb,insert data genreate
+openGauss=# explain analyze select a, b, c from test1 where a > 20000 and a < 200000;
+openGauss=# vacuum analyze test1;     /*/vacuum perform
+openGauss=# explain analyze select a, b, c from test1 where a > 20000 and a < 200000;
+openGauss=# Delete from test1;
+DELETE 5000000
+openGauss=# insert into test1 values (generate_series(1, 5000), generate_series(1, 1000), 'hello' ||
+random()); 
+openGauss=# vacuum analyze test1;         /*/perform vacuum
+--->Modifying Cost Parameters
+create tb,insert generate data,
+openGauss=# reset seq_page_cost;
+RESET
+openGauss=# show seq_page_cost;
+openGauss=# explain select a, b, c from test1 where a > 20000 and a < 200000;
+openGauss=# set seq_page_cost to 10;       /*/modify seqpage
 
+--->Diagnosing SQL Performance
+->Useing WDR
+openGauss=# alter system set enable_wdr_snapshot to on;
+openGauss=# select * from snapshot.snapshot;
+create tb,insert generate data
+openGauss=# select count(1) from test1;
+openGauss=# select count(1) , b, max(a) from test1 group by b order by b limit 5;
+openGauss=# select create_wdr_snapshot();
+openGauss=# select * from snapshot.snapshot;
+openGauss=# \a \t \o ~/my_wdr_report.html                          /*/Adjust the output format and specify the WDR output file.
+select generate_wdr_report(3, 4, 'all', 'cluster', null);          /*/ Generate a WDR.
+openGauss=# \o \a \t         /*/Restore to the initial output
 
-
-
-
-
-
-
+---> Optimizing Subqueries
+->Correlated Subqueries and Non-correlated Subqueries
 
 
 
