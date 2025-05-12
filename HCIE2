@@ -258,7 +258,245 @@ openGauss=# Explain analyze select c1 from t1 union all select c1 from t2;
 
 /**/CH6/**/
 
+---> Backup and Restoration 
+-> export data from posgres
+[omm@opengauss01 script]$ gs_dump -U omm -f /home/omm/MPPDB_backup.sql -p 26000 postgres -F p
+->to export the full information of the postgres database. 
+[omm@opengauss01 script]$ gs_dump -U omm -f /home/omm/MPPDB_backup.tar -p 26000 postgres -F t
+[omm@opengauss01 script]$ gs_dump -U omm -f /home/omm/MPPDB_backup -p 26000 postgres -F d
+->gs_dumpall to Export Data postgres
+[omm@opengauss01 script]$ gs_dumpall -f /home/omm/MPPDB_backup.sql -p 26000
+->Export the employees table in the public schema from the postgres database and save it to an SQL text file.
+openGauss-# \q
+[omm@]$ gs_dump -U omm -f /home/omm/MPPDB_backup_employees.sql -p 26000 postgres -n public -t employees -F p 
+[omm@]$ gs_dump -U omm -f /home/omm/MPPDB_backup_departments.tar -p 26000 postgres -n public -t departments -F t
+after drop this tabels
+-> Use gsql to restore the employees table
+[omm@]$ gsql -p 26000 postgres -r -f /home/omm/MPPDB_backup_employees.sql
 
+-> Physical Backup and Restor
+[omm@opengauss01 script]$ gs_backup -t backup --backup-dir=/home/omm/ --parameter
+->View the backup
+[omm@opengauss01 ~]$ cd /home/omm
+[omm@opengauss01 ~]$ tar -vxf parameter.tar
+[omm@opengauss01 ~]$ tar -xvf parameter_opengauss01.tar
+[omm@opengauss01 ~]$ cd parameter_opengauss01
+[omm@opengauss01 parameter_opengauss01]$ ls -l
+-> Full Backup Using gs_basebackup
+\l
+create db,create tb, insert into 
+----- >> \c DB name   /*/to change db 
+[omm@opengauss01 ~]$ mkdir /home/omm/backup
+[omm@opengauss01 ~]$ gs_basebackup -D /home/omm/backup/ -p 26000
+[omm@opengauss01 backup]$ cd /home/omm/backup
+[omm@opengauss01 backup]$ ls -l
+
+--->Restoring Data from Backup Files
+drop db,
+[omm@opengauss01 backup]$ gs_om -t status --detail
+[omm@opengauss01 backup]$ gs_ctl stop -D /opt/huawei/install/data/dn
+/*/Back up the original data directory
+[omm@opengauss01 backup]$ cd /opt/huawei/install/data/
+[omm@opengauss01 data]$ mv dn dn_bak
+/*/Copy the backup file to the original data directory.
+[omm@opengauss01 data]$ mv /home/omm/backup .
+[omm@opengauss01 data]$ ls -l
+/*/Rename the backup directory with the name of the original data directory.
+[omm@opengauss01 data]$ mv backup dn
+[omm@opengauss01 data]$ ls -l
+[omm@opengauss01 data]$ gs_ctl start -D /opt/huawei/install/data/dn
+\l
+
+/*/Using gs_probackup to Perform Incremental Backup and Restoration
+[omm@opengauss01 data]$ gs_guc reload -N all -I all -c "enable_cbm_tracking=on"
+[omm@opengauss01 data]$ gsql -d postgres -p 26000 -r
+openGauss=# show enable_cbm_tracking;
+[omm@opengauss01 data]$ mkdir -p /home/omm/gs_probackup
+[omm@opengauss01 data]$ gs_probackup init -B /home/omm/gs_probackup/
+/*/Add a backup instance
+[omm@opengauss01 data]$ gs_probackup add-instance --instance og1 -B
+/home/omm/gs_probackup/ -D /opt/huawei/install/data/dn
+[omm@opengauss01 data]$ gs_probackup set-config --instance=og1 -B /home/omm/gs_probackup/ - d postgres -p 26000
+openGauss=# \c testdb
+testdb=# insert into table_in_mytbs_ts values('openGauss');
+testdb=# insert into table_in_mytbs_ts values('GaussDB');
+testdb=# select * from table_in_mytbs_ts;
+/*/Perform a full backup.
+[omm@opengauss01 data]$ gs_probackup backup -B /home/omm/gs_probackup/ --instance og1 -b 
+[omm@opengauss01 data]$ gs_probackup show -B /home/omm/gs_probackup/
+
+testdb=# insert into table_in_mytbs_ts values('openEuler');
+testdb=# insert into table_in_mytbs_ts values('Euler');
+testdb=# select * from table_in_mytbs_ts;
+[omm@opengauss01 data]$ gs_probackup backup -B /home/omm/gs_probackup/ --instance og1 -b 
+/*/Simulate the deletion
+openGauss=# \c testdb
+testdb=# drop table table_in_mytbs_ts;
+testdb=# \q
+/*/Shut down the database
+[omm@opengauss01 data]$ gs_ctl stop -D /opt/huawei/install/data/dn
+
+--->Point-In-Time Recovery (PITR)
+[omm@opengauss01 /]$ exit
+[root@opengauss01 ~]# mkdir /ogarchive
+[root@opengauss01 ~]# chmod 777 /ogarchive/
+
+[root@opengauss01 ~]# su omm
+[omm@opengauss01 ~]$ cd /ogarchive/
+[omm@opengauss01 ogarchive]$ ll
+[omm@opengauss01 ogarchive]$ vi /opt/huawei/install/data/dn/postgresql.conf
+
+[omm@opengauss01 root]$ gs_om -t restart
+[omm@opengauss01 root]$ gsql -d postgres -p 26000 -r
+openGauss=# show archive_mode;
+openGauss=# show archive_command;
+
+[omm@opengauss01 ogarchive]$ mkdir /home/omm/backup1
+[omm@opengauss01 ogarchive]$ gs_basebackup -D /home/omm/backup1/ -p 26000
+
+[omm@opengauss01 ogarchive]$ cd /opt/huawei/install/data/dn/pg_xlog/
+[omm@opengauss01 pg_xlog]$ rm -rf *
+[omm@opengauss01 ~]# gs_om -t stop
+[omm@opengauss01 ogarchive]$ cd /opt/huawei/install/data/
+[omm@opengauss01 data]$ mv dn dn_bak
+[omm@opengauss01 data]$ mv /home/omm/backup1 .
+[omm@opengauss01 data]$ mv backup1 dn
+[omm@opengauss01 data]$ ll
+/*/Copy the archive log files to the pg_xlog directory and restart the databas
+[omm@opengauss01 ogarchive]$ cd /ogarchive/
+[omm@opengauss01 ogarchive]$ cp * /opt/huawei/install/data/dn/pg_xlog/
+[omm@opengauss01 ogarchive]$ gs_om -t start
+
+/*/CH7/*/
+--->Advanced Features 
+->Installing DBMind
+[root@opengauss01 software]# chown omm:dbgrp -R /opt/software/
+[root@opengauss01 ~]# su omm
+[omm@opengauss ~]$ gs_guc reload -D /opt/huawei/install/data/dn -c 'password_encryption_type=1'
+
+[omm@opengauss ~]$ gsql -p 26000 -d postgres -c 'create user dbmind_monitor password "openEuler@1234";'
+[omm@opengauss ~]$ gsql -p 26000 -d postgres -c 'alter user dbmind_monitor monadmin;'
+[omm@opengauss01 openGauss]$ gsql -p 26000 -d postgres -c 'grant all privileges to dbmind_monitor;'
+[omm@opengauss01 openGauss]$ gs_guc reload -D /opt/huawei/install/data/dn -c 'password_encryption_type=2'
+[omm@opengauss01 openGauss]$ gsql -p 26000 -d postgres -c 'create database metadatabase owner dbmind_monitor;
+
+/*/CH8/*/
+--->An Error Is Reported or Threads Cannot Be Created in High Concurrency Scenarios
+
+->Download the sysbench pressure test tool.
+[root@standalone ~]# wget https://github.com/akopytov/sysbench/archive/1.0.20.zip
+[root@standalone ~]# sed -i 's/gpgcheck=1/gpgcheck=0/g' /etc/yum.repos.d/openEuler.repo
+[root@standalone ~]# yum -y install make automake libtool pkgconfig unzip libaio-devel
+[root@standalone ~]# yum -y install postgresql-devel postgresql
+[root@standalone ~]# unzip 1.0.20.zip
+[root@standalone ~]# cd sysbench-1.0.20/
+[root@standalone sysbench-1.0.20]# ./autogen.sh
+[root@standalone sysbench-1.0.20]# ls -l configure
+[root@standalone sysbench-1.0.20]# ./configure --prefix=/sysbench --with-pgsql --without-mysql
+[root@standalone sysbench-1.0.20]# ls -l Makefile
+[root@standalone sysbench-1.0.20]# make && make install
+->Configure environment variables
+export PATH=/sysbench/bin:$PATH
+[root@standalone ~]# source /etc/profile
+[root@standalone ~]# sysbench --version
+[root@standalone ~]# su - omm # Switch to user omm.
+[omm@standalone ~]$ cd /opt/huawei/install/data/dn/ # Go to the directory where the
+configuration file is stored.
+[omm@standalone dn]$ vim postgresql.conf # Edit the configuration file.
+[omm@standalone dn]$ vim /opt/huawei/install/data/dn/pg_hba.conf
+/*/Restart the database and create a database and user for the pressure test.
+[omm@standalone dn]$ gs_om -t restart
+[omm@standalone ~]$ gsql -d postgres -p 26000 -r
+openGauss=# create user sbtest Sysadmin password 'openGauss@1234';
+openGauss=# GRANT ALL PRIVILEGES TO sbtest;
+openGauss=# create database sbtest;
+
+->Reproduce the issue.
+[omm@standalone ~]$ sysbench /sysbench/share/sysbench/oltp_read_write.lua --db-driver=pgsql --
+pgsql-host=192.168.56.28 --pgsql-port=26000 --pgsql-user=sbtest --pgsqlpassword='openGauss@1234' --pgsql-db=sbtest --tables=10 --table-size=1000000 --threads=4 --
+time=300 --report-interval=10 prepare 
+
+[omm@standalone ~]$ gsql -d sbtest -p 26000 -r
+sbtest=# \dt+
+->Run phase: Start the pressure test.
+[omm@standalone sysbench]$ sysbench /sysbench/share/sysbench/oltp_point_select.lua --dbdriver=pgsql --pgsql-host=192.168.56.28 --pgsql-port=26000 --pgsql-user=sbtest --pgsqlpassword='openGauss@1234' --pgsql-db=sbtest --tables=10 --table-size=1000000 --threads=20 --
+time=300 --report-interval=10 run
+
+->Rectify the fault.
+[root@standalone ~]# ulimit -u
+value=max(32768, Number of instances x 8192)
+->Restart the server.
+[root@standalone ~]# reboot
+->Restart the database.
+[omm@standalone ~]# gs_om -t start
+[omm@standalone sysbench]$ sysbench /sysbench/share/sysbench/oltp_point_select.lua --dbdriver=pgsql --pgsql-host=192.168.56.28 --pgsql-port=26000 --pgsql-user=sbtest --pgsqlpassword='openGauss@1234' --pgsql-db=sbtest --tables=10 --table-size=1000000 --threads=20 --
+time=300 --report-interval=10 run
+
+--->: Failing to Connect to and Start Up a Database Due to a Network Fault
+->Install Nginx.
+[root@standalone ~]# yum install -y nginx
+[omm@standalone ~]# gs_om -t stop
+/*/Start the Nginx service.
+[root@standalone ~]# /usr/sbin/nginx -c /etc/nginx/nginx.conf
+[root@standalone sbin]# ps -ef| grep nginx
+[root@standalone sbin]# netstat -anop|grep 26000
+[omm@standalone ~]# gs_om -t start
+[root@standalone ~]$ /usr/sbin/nginx -s reload
+[root@standalone sbin]# netstat -anop|grep 80
+[omm@standalone ~]$ gs_om -t start
+
+---> An Error Reporting Insufficient Space Is Reported
+When TPC-H Data Is Imported Using a Script
+
+[root@standalone sysbench-1.0.20]# yum install -y git
+//Switch to user omm and download the test dataset from the /home/omm/
+git clone https://gitee.com/xzp-blog/tpch-kit.git
+//Go to the dbgen directory and generate the makefile
+cd /home/omm/tpch-kit/dbgen/
+make -f Makefile
+[omm@standalone ~] $ gsql -d postgres -p 26000 -r
+openGauss=# CREATE DATABASE tpch;
+openGauss=# \q
+/*/Create eight test tables
+[omm@standalone dbgen]$ gsql -d tpch -f dss.ddl -p 26000
+/*/After logging in to the tpch database, you can see the following eight tables:
+/*/Generate test data for the eight tables
+cd /home/omm/tpch-kit/dbgen/
+
+/*/Compile the data import script LoadData.sh.
+for i in `ls *.tbl`; do
+ table=${i/.tbl/}
+ echo "Loading $table..."
+ sed 's/|$//' $i > /tmp/$i
+ gsql tpch -p 26000 -q -c "TRUNCATE $table"
+ gsql tpch -p 26000 -c "\\copy $table FROM '/tmp/$i' CSV DELIMITER '|'"
+done
+[omm@standalone dbgen]$ chmod +x LoadData.sh #d
+[omm@standalone dbgen]$ sh LoadData.sh
+[omm@standalone dbgen]$ sh LoadData.sh
+
+/*/Check the disk space
+[root@standalone ~]# df -h
+
+/*/Method 2: Reallocate the disk space of the /tmp directory and restart the server.
+[root@standalone ~]# rm -rf /tmp/*
+[root@standalone ~]# vim /etc/fstab
+
+/*/Add the following content to the end of the file to reallocate space (15 GB) to the /tmp
+tmpfs /tmp tmpfs nodev,nosuid,size=15G 0 0
+/*/After the server is restarted, modify the LoadData.sh script in Step 7 and run the
+[root@standalone ~]# df -h 
+/*/As shown in the command output, the size of the /tmp directory has been changed to 15 
+for i in `ls *.tbl`; do
+ table=${i/.tbl/}
+ echo "Loading $table..."
+ mv ./$i /tmp/$i
+ gsql tpch -p 26000 -q -c "TRUNCATE $table"
+ gsql tpch -p 26000 -c "\\copy $table FROM '/tmp/$i' CSV DELIMITER '|'"
+ rm -rf
+
+/*/Run the script
+[omm@standalone dbgen]$ sh LoadData.sh
 
 
 
