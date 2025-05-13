@@ -522,7 +522,138 @@ rm -f gs_ctl-2024-03-25_204315-current.log
 
 // lec 4 \\
 
+---> SQL Execution Engine
+--> Perform simple queries using EXPLAIN. 
+explain select id from test where id > 50; 
 
+--> The query statement for the condition id < 20 is as follows: 
+explain select id from test  where id < 20; 
+
+--> Add the AND query condition to EXPLAIN
+explain select id from test where id < 20 and age > 0;
+
+--> Perform the AND query again. 
+explain select id from test where id < 20 and age > 0;
+
+--> Execute the subquery statement using EXPLAIN. 
+EXPLAIN SELECT * FROM ( SELECT name, salary FROM employees WHERE salary > ( SELECT AVG(salary) FROM employees )
+ORDER BY salary DESC LIMIT 10 ) AS top_earners WHERE salary > ( SELECT AVG(salary) FROM employees ); 
+
+--> Execute the query statement using EXPLAIN ctid. 
+EXPLAIN SELECT * FROM employees WHERE ctid = '(0,1)';
+
+--> Execute the function query statement using EXPLAIN. 
+EXPLAIN SELECT * FROM generate_series(1, 10);
+
+--> Create the departments table to implement the join operation. 
+CREATE TABLE departments ( department_id SERIAL PRIMARY KEY, department_name VARCHAR(50) ); 
+
+--> Execute the hash join query statement using EXPLAIN. 
+EXPLAIN SELECT e.name, d.department_name FROM employees e JOIN departments d ON e.department = d.department_name; 
+
+--> Use EXPLAIN analyze to print an execution plan. 
+EXPLAIN analyze SELECT e.name, d.department_name FROM employees e 
+JOIN departments d ON e.department = d.department_name;
+
+--> Disable hash join and enable merge join. 
+SET enable_hashjoin = off; 
+set enable_mergejoin = on; 
+
+--> Execute the merge join query statement using EXPLAIN.
+EXPLAIN SELECT e.name, d.department_name FROM employees e 
+JOIN departments d ON e.department = d.department_name;
+
+--> Use EXPLAIN analyze to print an execution plan.
+EXPLAIN analyze SELECT e.name, d.department_name FROM employees e 
+JOIN departments d ON e.department = d.department_name;
+
+---> Nested Loop Join Operators 
+--> Disable hash join and merge join.
+SET enable_hashjoin = off; 
+SET enable_mergejoin = off;
+
+--> Execute the query statement using EXPLAIN.
+EXPLAIN SELECT e.name, d.department_name FROM employees e 
+JOIN departments d ON e.department = d.department_name; 
+
+--> Insert 100,000 data records.
+DO $$ DECLARE iter INTEGER; 
+BEGIN 
+  FOR iter IN 1..100000 LOOP 
+      INSERT INTO employees (name, age, salary, department) 
+      VALUES ('Alice', 30, (RANDOM() * (100000 - 10000) + 10000)::INT, 'HR'); 
+  END LOOP; 
+END $$; 
+
+--> Use hash join, merge join, and nested loop join to perform the test. Hash join connection test:
+SET enable_hashjoin = on; 
+SET enable_mergejoin = on; 
+EXPLAIN analyze SELECT e.name, d.department_name FROM employees e JOIN departments d ON e.department = d.department_name; 
+
+--> Merge join connection test: 
+SET enable_hashjoin = off;
+EXPLAIN analyze SELECT e.name, d.department_name 
+FROM employees e JOIN departments d ON e.department = d.department_name; 
+
+--> Nested loop join connection test: 
+SET enable_hashjoin = off;
+SET enable_mergejoin = off; 
+EXPLAIN analyze SELECT e.name, d.department_name 
+FROM employees e JOIN departments d ON e.department = d.department_name; 
+
+---> Control Operator Execution Plan 
+--> Execute the query statement 1 using EXPLAIN.
+EXPLAIN SELECT 'Hello World' AS greeting;
+
+--> Execute the query statement 2 using EXPLAIN.
+EXPLAIN SELECT CASE WHEN random() > 0.5 THEN 'Greater than 0.5' ELSE 'Less than or equal to 0.5' END AS random_result; 
+
+---> Limit Operators
+--> Execute the query statement using EXPLAIN LIMIT.
+EXPLAIN SELECT * FROM employees LIMIT 10;
+
+---> Append Operators 
+--> Execute the query statement using EXPLAIN. 
+XPLAIN SELECT name FROM employees UNION ALL 
+SELECT name FROM employees WHERE department = 'HR';
+
+---> Materialization Operator Execution Plan 
+--> Execute the query statement using EXPLAIN. 
+EXPLAIN SELECT name, department, salary FROM employees ORDER BY salary DESC; 
+
+--> Use EXPLAIN analyze to print query statements.
+EXPLAIN analyze SELECT name, department, salary FROM employees ORDER BY salary DESC; 
+
+--> Execute the query statement using EXPLAIN, which is the same as hash join.
+EXPLAIN SELECT e.name, d.department_name 
+FROM employees e JOIN departments d ON e.department = d.department_name;
+
+---> Unique Operators 
+-->Execute the query statement 1 using EXPLAIN.
+EXPLAIN SELECT DISTINCT department FROM employees; 
+
+--> Execute the query statement 2 using EXPLAIN.
+ EXPLAIN SELECT DISTINCT department 
+FROM ( SELECT department FROM employees ORDER BY department ) sub; 
+
+---> Aggregate Operators 
+--> Execute the aggregate function query statement using EXPLAIN.
+ EXPLAIN SELECT AVG(salary) AS average_salary FROM employees;
+
+---> Group Operators
+--> Execute the GROUP BY query statement 1 using EXPLAIN. 
+EXPLAIN SELECT department, AVG(salary) AS average_salary FROM employees GROUP BY department; 
+
+--> Execute the GROUP BY query statement 2 using EXPLAIN and disable HashAggregate. 
+SET enable_hashagg = off; 
+EXPLAIN SELECT department, AVG(salary) AS average_salary FROM employees GROUP BY department; 
+
+--> Cancel the disabling
+RESET enable_hashagg;
+
+---> SetOp Operators
+--> Execute the query statement using EXPLAIN. 
+EXPLAIN SELECT name FROM employees WHERE department = 'Sales' EXCEPT SELECT name FROM employees WHERE department = 'HR';
 
 
 
