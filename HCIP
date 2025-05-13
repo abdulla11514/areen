@@ -1,3 +1,4 @@
+/*
 ---> create user db schema
 create user if not exists user_test password 'Test@123';
 create database if not exists db_test;
