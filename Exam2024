@@ -285,4 +285,360 @@ SELECT get_avg_yearly_revenue_loss() AS avg_yearly;
 
 --------------------
 
+#############
+Task3: 
+
+Subtask 1: Initialize data.
+Procedure:
+
+a. Copy the retail_data.sql file from the /root/datasets directory to the /home/omm directory. 
+Change the owner and user group of the /home/omm/retail_data.sql file to omm and dbgrp, respectively. 
+Change the permission on the /home/omm/retail_data.sql file to 755.
+Create the ts/tsretail tablespace.
+
+b. Create the dbretail database with the ts/tsretail tablespace and the UTF8 character set, and switch to the dbretail database.
+
+c. Use the meta-command to import retail_data.sql to the dbretail database.
+
+d. Run the meta-command to list all tables in the dbretail database.
+
+Screenshot requirements:
+
+a. Take a screenshot of the SQL statement for creating the tablespace and save it as 3-1-1create_ts.
+
+b. Take a screenshot of the SQL statement for creating the database and save it as 3-1-2create_db.
+
+c. Take a screenshot of the meta-command for importing data and save it as 3-1-3import_data.
+
+d. Take a screenshot of the meta-command for listing database tables and views and save it as 3-1-4_list_table.
+
+-------------
+✅ a. Copy SQL file and set permissions
+
+# 1. Copy the retail_data.sql file
+cp /root/datasets/retail_data.sql /home/omm/
+
+# 2. Change owner and group
+chown omm:dbgrp /home/omm/retail_data.sql
+
+# 3. Set file permissions to 755
+chmod 755 /home/omm/retail_data.sql
+
+
+✅ b. Create tablespace
+
+--1.
+
+CREATE TABLESPACE tsretail LOCATION '/opt/gaussdb/ts/tsretail';
+screen:: 3-1-1
+
+--2. Create database with UTF8 encoding
+
+CREATE DATABASE dbretail
+  WITH TABLESPACE = tsretail
+  ENCODING = 'UTF8';
+
+\c dbretail
+
+screen:: 3-1-2
+
+
+✅ c. Import SQL file
+
+gsql -d dbretail -U omm -W -f /home/omm/retail_data.sql
+
+[or in omm write]
+
+gsql -d dbretail -p 15432 -r -f /home/omm/retail_data.sql
+
+
+✅ d. List all tables and views
+
+gsql -d dbretail -U omm -W
+
+\dt
+
+[ info:
+
+\dv
+]
+--------------
+
+####################
+Subtask 2: Create a view and analyze retail indicators.
+
+Procedure:
+
+a. Create a view named v_sales_and_flow in inner join mode based on the sales, store, firm, brand, sector,
+category, date, and flow tables, and relationships between the tables. This view should contain the following columns:
+firmid, firmname, citycode, categoryid, categoryname, sectorid, sector.sectorname, brandid, brand.brandname,
+storeid, store.storename, store.rentamount, store.rentarea, datekey, totalamount, discountamount, itemcount, paidamount, and inflowvalue
+
+b. Query the turnover of each city in the created v_sales_and_flow view. In addition, 
+you can write SQL statements based on the relationship between tables to query the turnover of each city. 
+You can use either of the two methods.
+Requirement: Sort by turnover in descending order. The result set should contain the columns are citycode and turnover.
+
+c. Customize a function named query_brand_day_turnover and call the function to query the daily turnover of each brand.
+To query the daily turnover of each brand, write SQL statements according to the relationship between tables. 
+The requirements are as follows:
+Group by brand and date and sort by daily turnover in ascending order. 
+The result set should contain the following columns: brand (brandname), date (datekey), and turnover (turnover).
+
+d. Use the created v_sales_and_flow view to query the revenue and rental-to-sales ratio.
+The rental-to-sales ratio is calculated using AVG(RENTAMOUNT)/SUM(PAIDAMOUNT).
+The requirements are as follows: Group by firmname and storename and sort by total revenue in descending order. The query result should contain four columns:
+company name (firmname), store name (storename), turnover (turnover), and rental-to-sales ratio (alias rentamount_sales_rate).
+
+Screenshot requirements:
+
+a. Take a screenshot of the SQL statement for creating a view and save it as 3-2-1view_create. 
+Take a screenshot of the view and output displayed by running a meta-command and save it as 3-2-2view_result.
+
+b. Take a screenshot of the SQL query statement and save it as 3-2-3city_query. Take a screenshot of the SQL statement and output information and save it as 3-2-4 city_result.
+
+C.Take a screenshot of the SQL statement for creating a user-defined function and save it as 3-2-5 create_func. Take a screenshot of the command or statement for calling a
+user-defined function and save it as 3-2-6 call_func. 
+Take a screenshot of the command or statement for calling a user-defined function and save it as 3-2-7 func_result.
+
+d. Take a screenshot of the SQL query statement and save it as 3-2-8renta_query. Take a
+screenshot of the SQL statement and output information and save it as 3-2-
+9renta_result.
+
+
+--------------
+a. Create view v_sales_and_flow
+
+CREATE OR REPLACE VIEW v_sales_and_flow AS
+SELECT 
+    f.id AS firmid,
+    f.name AS firmname,
+    f.citycode,
+    c.id AS categoryid,
+    c.name AS categoryname,
+    sct.id AS sectorid,
+    sct.sectorname,
+    b.id AS brandid,
+    b.brandname,
+    st.id AS storeid,
+    st.storename,
+    st.rentamount,
+    st.rentarea,
+    d.datekey,
+    sa.totalamount,
+    sa.discountamount,
+    sa.itemcount,
+    sa.paidamount,
+    fl.inflowvalue
+FROM sales sa
+INNER JOIN store st ON sa.storeid = st.id
+INNER JOIN firm f ON st.firmid = f.id
+INNER JOIN brand b ON st.brandid = b.id
+INNER JOIN sector sct ON b.sectorid = sct.id
+INNER JOIN category c ON sct.categoryid = c.id
+INNER JOIN date d ON sa.datekey = d.datekey
+INNER JOIN flow fl ON sa.storeid = fl.storeid AND sa.datekey = fl.datekey;
+
+screen:: 3-2-1
+
+\d+ v_sales_and_flow
+
+screen:: 3-2-2
+
+
+b. Query: Turnover by City (using the view)
+
+SELECT citycode, SUM(paidamount) AS turnover
+FROM v_sales_and_flow
+GROUP BY citycode
+ORDER BY turnover DESC;
+
+screen:: 3-2-3
+screen:: 3-2-4 for result
+
+
+c. Function: Daily Turnover by Brand
+
+CREATE OR REPLACE FUNCTION query_brand_day_turnover()
+RETURNS TABLE(brandname VARCHAR, datekey INTEGER, turnover NUMERIC)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        b.brandname, 
+        d.datekey, 
+        SUM(sa.paidamount) AS turnover
+    FROM sales sa
+    INNER JOIN store st ON sa.storeid = st.id
+    INNER JOIN brand b ON st.brandid = b.id
+    INNER JOIN date d ON sa.datekey = d.datekey
+    GROUP BY b.brandname, d.datekey
+    ORDER BY turnover ASC;
+END;
+$$ LANGUAGE plpgsql;
+
+screen:: 3-2-5
+
+SELECT * FROM query_brand_day_turnover();
+
+screen:: 3-2-6 call func
+screen:: 3-2-7 func result
+
+
+d. Query: Revenue and Rental-to-Sales Ratio (using view)
+
+SELECT
+    firmname,
+    storename,
+    SUM(paidamount) AS turnover,
+    AVG(rentamount) / NULLIF(SUM(paidamount), 0) AS rentamount_sales_rate
+FROM v_sales_and_flow
+GROUP BY firmname, storename
+ORDER BY turnover DESC;
+
+---------------
+
+
+##########################
+Task 4: Managing openGauss System O&M (50 Points)
+
+Subtask 1: Check the database performance.
+Procedure:
+
+a. Use gs_checkperf to check the performance of the current database cluster.
+Requirement: Check the performance of the current database cluster in PMK mode and display its detailed performance information. 
+Take a screenshot of the CPU and disk usage.
+
+Screenshot requirements:
+
+a. Take a screenshot of the executed command and its output and save it as 4-1-1perf.
+
+-------------
+[omm@] gs_checkperf -U omm -i PMK
+
+-------------
+
+
+###################
+Subtask 2: Collect system information to help locate faults.
+Procedure:
+
+a. Use gs_collector to collect system information.
+Requirements: The collection time range is [20240103 07:00, 20240303 22:30]. You need to collect information about the pg_locks and pg_stat_activity views. 
+You can add the information about the two views to /home/omm/collector.json. The mandatory items are "Count": "1" and "Interval": "0".
+
+Screenshot requirements:
+
+a. Take a screenshot of the content added to the collector.json file and save it as 4-2-1collector_json.
+
+Take a screenshot of the gs_collector command execution and save it as 4-2-2collector_exec.
+
+Take a screenshot of the gs_collector command output, and save it as 4-2-3collector_result.
+
+
+-----------------
+🔹 a. Prepare the collector.json 
+
+filepath:: /home/omm/collector.json:
+
+vi /home/omm/collector.json
+
+🔹 Add following comand
+
+{
+  "View": [
+    {
+      "Name": "pg_locks",
+      "Count": "1",
+      "Interval": "0"
+    },
+    {
+      "Name": "pg_stat_activity",
+      "Count": "1",
+      "Interval": "0"
+    }
+  ]
+}
+screen:: 4-2-1
+
+
+🔹 b. Run gs_collector with the required time range
+
+gs_collector -U omm -B "20240103 07:00" -E "20240303 22:30" -C /home/omm/collector.json
+
+
+[
+for info::
+-B: Begin time
+
+-E: End time
+
+-C → specifies the config file you created
+]
+
+
+🔹 c. Screenshot the command output
+
+Screenshot of the result/output display: 4-2-3
+
+-----------------
+
+
+###############
+Subtask 3: Export the structures of all tables in a specific database.
+
+Procedure:
+
+a. Export the table structure (excluding data) from the dbsupplychain database to the /home/omm/backup directory and name the file dbsupplychain.sql.
+
+b. Check whether the dbsupplychain.sql file contains all table structures of dbsupplychain.
+
+Screenshot requirements:
+
+a. Take a screenshot of the command for saving the exported table structure and save it as 4-3-1export_query. Take a screenshot of the query result and save it as 4-3-2export_result.
+
+b. Take a screenshot of table structures in the dbsupplychain.sql file, and save it as 4-3-3check_result.
+
+
+--------------------
+✅ a. Export table structure only (no data)
+
+gs_dump -d dbsupplychain -U omm -f /home/omm/backup/dbsupplychain.sql -s
+
+yakekiana lam dwana
+
+gs_dump -U omm -d dbsupplychain -p 15432 -f /home/omm/backup/dbsupplychain.sql -s
+
+[
+for info::
+
+-d dbsupplychain: target database
+
+-U omm: username
+
+-f /home/omm/backup/dbsupplychain.sql: output file
+
+-s: schema only (no data
+]
+
+screen:: 4-3-1 export_query
+screen:: 4-3-2 export_result
+
+
+
+✅ b. Check the output file for table structures
+
+less /home/omm/backup/dbsupplychain.sql
+
+CREATE TABLE ...
+
+screen:: 4-3-3
+
+
+***If /home/omm/backup/ doesn’t exist, create it first:
+ 
+mkdir -p /home/omm/backup
+
+
+
 
