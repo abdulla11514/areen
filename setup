@@ -1,1 +1,74 @@
+--> Add export LANG= en_US.UTF-8 to the /etc/profile file.
+cat >>/etc/profile<<EOF 
+> export LANG=en_US.UTF-8 
+> EOF
+
+-->  source /etc/profile 
+-->  cd /usr/bin
+-->  mv python python.bak 
+-->  ln -s python3 /usr/bin/python
+-->  python -V 
+-->  yum install libaio* -y
+-->  mkdir -p /opt/software/openGauss 
+-->  chmod 755 -R /opt/software 
+-->  cd /opt/software/openGauss
+-->  wget https://openGauss.obs.cn-south-1.myhuaweicloud.com/2.0.0/arm/openGauss-2.0.0-openEuler-64bit-all.tar.gz 
+-->  cd /opt/software/openGauss 
+
+-->  vi clusterconfig.xml
+<PARAM name="nodeNames" value="nawe ecs xoman" />  
+<PARAM name="backIp1s" value="ip address private"/> 
+<PARAM name="name" value="nawe ecs xoman"/>
+<PARAM name="backIp1" value="ip address private"/>  
+<PARAM name="sshIp1" value="ip address private"/> 
+
+-->  vi /etc/profile.d/performance.sh
+ ( # ) axaina bardam line yakam
+
+-->   vi /etc/profile   
+export packagePath=/opt/software/openGauss 
+export LD_LIBRARY_PATH=$packagePath/script/gspylib/clib:$LD_LIBRARY_PATH
+
+-->   source /etc/profile
+-->   cd /opt/software/openGauss 
+-->   tar -zxvf openGauss-2.0.0-openEuler-64bit-all.tar.gz 
+-->   tar -zxvf openGauss-2.0.0-openEuler-64bit-om.tar.gz 
+-->   ls
+-->   cd /opt/software/openGauss/script/
+-->   ls
+-->   python gs_preinstall -U omm -G dbgrp -X /opt/software/openGauss/clusterconfig.xml
+yes
+password omm = Admin@123
+
+-->   chmod -R 755 /opt/software/openGauss/script/ 
+-->   su - omm
+-->  gs_install -X /opt/software/openGauss/clusterconfig.xml --gsinit-parameter="--encoding=UTF8"
+--dn-guc="max_process_memory=4GB"  --dn-guc="shared_buffers=256MB" --dn-
+guc="bulk_write_ring_size=256MB" --dn-guc="cstore_buffers=16MB" 
+
+--> su - omm 
+--> gs_om -t status --detail
+--> cat /gaussdb/data/db1/postgresql.conf | grep port 
+  lerawa sayre port'aka bka
+--> gs_om -t start 
+--> gsql -d postgres -p 26000 -r 
+
+--> Check the connection of the openGauss instance again
+gs_check -i CheckDBConnection
+
+--> Perform a detailed performance check. 
+gs_checkperf --detail 
+
+--> Perform a brief performance check.
+gs_checkperf 
+
+--> Run the gs_checkos -i A command to check whether the system parameters pass the check. 
+ gs_checkos -i A 
+
+-->Log in to the operating system where the openGauss database service is installed as the root user. Run the gs_checkos command as user root to check system parameters.
+gs_checkos -i A 
+
+
+
+
 
