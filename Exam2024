@@ -75,13 +75,13 @@ a. Take a screenshot of the command to create the database and its output and sa
 b. Take a screenshot of the meta-command to switch to the dbsupplychain database and
 its output and save it as 2-2-2change_db.
 -----------------
-✅ a. Create the dbsupplychain Database
+a. Create the dbsupplychain Database
 
 CREATE DATABASE dbsupplychain 
     WITH ENCODING='UTF8' 
     TABLESPACE=tssupplychain;
 
-✅ b. Switch to the dbsupplychain Database
+b. Switch to the dbsupplychain Database
 
 \c dbsupplychain
 
@@ -113,7 +113,7 @@ b. Take a screenshot of the command output indicating that the data is successfu
 imported and save it as 2-3-4gs_restore.
 
 ------------------
-✅ a. Copy, Change Ownership & Permission of the File
+a. Copy, Change Ownership & Permission of the File
 cp /root/datasets/supplychain.tar /home/omm/
 chown omm:dbgrp /home/omm/supplychain.tar
 screen:: 2-3-1
@@ -125,7 +125,7 @@ ls -l /home/omm/supplychain.tar
 -rwxr-xr-x 1 omm dbgrp 123456 May 14 14:00 /home/omm/supplychain.tar
 screen:: 2-3-3
 
-✅ b. Import the Data Using gs_restore
+b. Import the Data Using gs_restore
 
 gs_restore -d dbsupplychain -p 15432 /home/omm/supplychain.tar
 
@@ -313,7 +313,7 @@ c. Take a screenshot of the meta-command for importing data and save it as 3-1-3
 d. Take a screenshot of the meta-command for listing database tables and views and save it as 3-1-4_list_table.
 
 -------------
-✅ a. Copy SQL file and set permissions
+a. Copy SQL file and set permissions
 
 # 1. Copy the retail_data.sql file
 cp /root/datasets/retail_data.sql /home/omm/
@@ -325,7 +325,7 @@ chown omm:dbgrp /home/omm/retail_data.sql
 chmod 755 /home/omm/retail_data.sql
 
 
-✅ b. Create tablespace
+b. Create tablespace
 
 --1.
 
@@ -343,7 +343,7 @@ CREATE DATABASE dbretail
 screen:: 3-1-2
 
 
-✅ c. Import SQL file
+c. Import SQL file
 
 gsql -d dbretail -U omm -W -f /home/omm/retail_data.sql
 
@@ -352,7 +352,7 @@ gsql -d dbretail -U omm -W -f /home/omm/retail_data.sql
 gsql -d dbretail -p 15432 -r -f /home/omm/retail_data.sql
 
 
-✅ d. List all tables and views
+d. List all tables and views
 
 gsql -d dbretail -U omm -W
 
@@ -537,7 +537,7 @@ Take a screenshot of the gs_collector command output, and save it as 4-2-3collec
 
 
 -----------------
-🔹 a. Prepare the collector.json 
+a. Prepare the collector.json 
 
 filepath:: /home/omm/collector.json:
 
@@ -562,7 +562,7 @@ vi /home/omm/collector.json
 screen:: 4-2-1
 
 
-🔹 b. Run gs_collector with the required time range
+b. Run gs_collector with the required time range
 
 gs_collector -U omm -B "20240103 07:00" -E "20240303 22:30" -C /home/omm/collector.json
 
@@ -601,7 +601,7 @@ b. Take a screenshot of table structures in the dbsupplychain.sql file, and save
 
 
 --------------------
-✅ a. Export table structure only (no data)
+a. Export table structure only (no data)
 
 gs_dump -d dbsupplychain -U omm -f /home/omm/backup/dbsupplychain.sql -s
 
@@ -626,7 +626,7 @@ screen:: 4-3-2 export_result
 
 
 
-✅ b. Check the output file for table structures
+b. Check the output file for table structures
 
 less /home/omm/backup/dbsupplychain.sql
 
