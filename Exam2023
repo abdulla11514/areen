@@ -766,4 +766,3 @@ a. INSERT INTO creditcard_info VALUES (1, 'joe', '6217986500001288393');
 b. SELECT * FROM creditcard_info;
 
 --------------------
-
